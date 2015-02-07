@@ -119,7 +119,7 @@ Permissions dont need to target application and model names, they can be complet
     nsp.has_perms(perms, User, PERM_WRITE)
     nsp.has_perms(perms, SomeModel, PERM_READ)
 
-##ÂApply permissions to dict data
+## Apply permissions to dict data
 
 It is possible to apply a users permissions to a data dict, removing any keys the user does not have permission to see.
 
