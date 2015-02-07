@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='django-namespace-perms',
-    version='0.1',
+    version=open('config/VERSION').read().rstrip(),
     author='Twentieth Century',
     author_email='code@20c.com',
     description='granular permission system that allows permissioning for read / write operations all the way down to the field level. Also supports completely arbitrary / custom permission namespaces.',

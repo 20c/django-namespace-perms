@@ -1,3 +1,9 @@
+# Purpose 
+
+Provide granular permissions to django that go down to the level of individual model fields. For example we want to be able to grant a user permission to read the field "name" of a certain object instance
+
+    app_name.model_name.instance_id.field_name
+
 # Installation 
 
 ## Django
@@ -113,6 +119,60 @@ Permissions dont need to target application and model names, they can be complet
     nsp.has_perms(perms, User, PERM_WRITE)
     nsp.has_perms(perms, SomeModel, PERM_READ)
 
+##ÂApply permissions to dict data
+
+It is possible to apply a users permissions to a data dict, removing any keys the user does not have permission to see.
+
+Let's assume the user has permissions set as follows
+
+    a.b : READ
+    a.b.c : READ | WRITE
+    a.b.d : DENY
+    b : READ
+
+We can apply these permissions to any dict holding data with the proper keys
+
+    data = {
+      "a" : {
+        "b": {
+          "c" : "This should be here",
+          "d" : "This should be gone"
+        }
+      },
+      "b" : "This should be here",
+      "c" : "This should be gone"
+    }
+
+    from django_namespace_perms.util import perms_structure, permissions_apply
+
+    data = permissions_apply(data, perms_structure(user))
+
+After permissions apply the contents of data will be
+
+    {
+      "a" : {
+        "b" : {
+          "c" : "This should be here"
+        }
+      },
+      "b" : "This should be here"
+    }
+
+## Setting permissions via API
+
+    from django_namespace_perms.constants import PERM_READ, PERM_WRITE
+    from django_namespace_perms.models import GroupPermission, UserPermission
+    from django.contrib.auth.models import User, Group
+
+    # adding a new group permission to group with id=1
+    group = Group.objects.get(id=1)
+    perm = GroupPermission(group=group, namespace="a.b.c", permissions=PERM_READ)
+    perm.save()
+
+    # adding a new user permission to user with id=1]
+    user = User.objects.get(id=1)
+    perm = UserPermission(user=user, namespace="a.b.c", permissions=PERM_WRITE)
+    perm.save()
 
 ## discover permission namespaces (which then can be granted/revoked in the admin ui)
 
