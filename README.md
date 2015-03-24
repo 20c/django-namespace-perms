@@ -19,6 +19,10 @@ Run
    
     python manage.py syncdb
 
+Edit urls.py and add 
+
+    url(r'^autocomplete/',  include('autocomplete_light.urls')),
+
 ## Add Inline Permission editing to the user admin forms
 
 Edit your app admin.py and add these:
