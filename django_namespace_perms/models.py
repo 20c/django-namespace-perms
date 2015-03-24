@@ -1,7 +1,6 @@
 
 from django.db import models
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
 from django_namespace_perms.constants import *
@@ -37,7 +36,7 @@ class GroupPermission(models.Model):
 #############################################################################
 
 class UserPermission(models.Model):
-  user = models.ForeignKey(get_user_model(), blank=False)
+  user = models.ForeignKey(settings.AUTH_USER_MODEL, blank=False)
   namespace = models.CharField(max_length=255, blank=False)
   permissions = models.IntegerField(choices=PERM_CHOICES, blank=False, default=PERM_READ)
 
@@ -50,7 +49,7 @@ class UserPermission(models.Model):
 #############################################################################
 
 class UserGroup(models.Model):
-  user = models.ForeignKey(get_user_model(), blank=False)
+  user = models.ForeignKey(settings.AUTH_USER_MODEL, blank=False)
   group = models.ForeignKey(Group, blank=False)
 
   class Meta:
