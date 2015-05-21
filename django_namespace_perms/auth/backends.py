@@ -51,8 +51,8 @@ class NSPBackend(ModelBackend):
     #  return False
 
     # super users have access to everything
-    #if user.is_superuser:
-    #  return True
+    if user.is_superuser:
+      return True
 
     namespace, level = permcode_to_namespace(perm)
 

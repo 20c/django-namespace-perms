@@ -109,11 +109,14 @@ def obj_to_namespace(obj):
 #############################################################################
 
 def has_perms(user, namespace, level, ambiguous=False):
+  
   if type(namespace) not in [str, unicode]:
     namespace = obj_to_namespace(namespace)
 
-  #print "checking: %s : %s" % (namespace, level)
+  print "checking: %s : %s" % (namespace, level)
   if type(user) != dict:
+    if user.is_superuser:
+      return True
     perms = load_perms(user)
   else:
     perms = user
