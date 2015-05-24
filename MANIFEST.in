@@ -1,1 +1,2 @@
 recursive-include django_namespace_perms/templates *
+recursive-include django_namespace_perms/templatetags *
