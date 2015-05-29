@@ -2,9 +2,9 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group 
 
-from django_namespace_perms.models import Group, GroupPermission, UserPermission, UserGroup
+from django_namespace_perms.models import GroupPermission, UserPermission
 from django_namespace_perms.constants import *
 from django_namespace_perms.util import NAMESPACES
 
@@ -19,13 +19,13 @@ def assign_group_to_all_users(modeladmin, request, queryset):
     #note: cant do bulk_save here since right now that doesnt trigger the save signal,
     #revist when/if that get's fixed
     for user in users:
-      ug = UserGroup(user=user, group=group)
-      ug.save()
+      group.user_set.add(user)
 assign_group_to_all_users.short_description = "Assign selected groups to all users"
 
 
 def revoke_group_from_all_users(modeladmin, request, queryset):
-  UserGroup.objects.filter(group__in=queryset).delete()
+  for group in queryset:
+    group.user_set.remove(user)
 revoke_group_from_all_users.short_description = "Revoke selected groups from all users"
 
 
@@ -64,9 +64,6 @@ class UserPermissionInline(admin.TabularInline):
   model = UserPermission
   form = ManualUserPermissionInline
 
-class UserGroupInline(admin.TabularInline):
-  model = UserGroup
-
 class GroupAdmin(admin.ModelAdmin):
   list_display = ('name',)
   search_fields = ('name',)
@@ -79,12 +76,12 @@ class GroupAdmin(admin.ModelAdmin):
   ]
 
 class UserAdmin(DjangoUserAdmin):
-  inlines = (UserGroupInline, UserPermissionInline,)
+  inlines = (UserPermissionInline,)
   add_fieldsets = (
     (None, {
         'classes' : ('wide',),
         'fields' : ('username' ,'password1', 'password2', 'email')
-    }),
+    })
   )
 
   def __init__(self, *args, **kwargs):
@@ -92,7 +89,7 @@ class UserAdmin(DjangoUserAdmin):
     # remove default permissions forms
     for label, fieldset in self.fieldsets:
       fieldset["fields"] = [x for x in fieldset["fields"] if x not in [
-        'groups', 'user_permissions'
+        'user_permissions'
       ]]
 
 try:
