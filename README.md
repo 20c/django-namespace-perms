@@ -42,7 +42,7 @@ If you wish to simply append django namespace permissions forms the the user and
 
     class UserAdmin(UserAdmin):
       ...
-      inlines = (UserGroupInline, UserPermissionInline)
+      inlines = (UserPermissionInline)
       ...
     
     admin.site.register(User, UserAdmin)
