@@ -17,11 +17,14 @@ class NoDbTestRunner(DiscoverRunner):
 
 ###############################################################################
 
-class ModelTest(models.Model):
-  
+class ModelTestA(models.Model):
   @property
-  def nsp_prefix(self):
-    return "test"
+  def nsp_namespace(self):
+    return "test.django_namespace_perms.modeltesta.1"
+
+class ModelTestB(models.Model):
+  allowedField = models.CharField(max_length=255)
+  deniedField = models.CharField(max_length=255)
 
 ###############################################################################
 # Create your tests here.
@@ -29,20 +32,41 @@ class ModelTest(models.Model):
 class NSPTestCase(SimpleTestCase):
 
   perms = {
+    "django_namespace_perms.modeltestb.1" : constants.PERM_WRITE,
+    "django_namespace_perms.modeltestb.2.allowedfield" : constants.PERM_READ,
     "a.b" : constants.PERM_READ,
     "a.b.c" : constants.PERM_READ | constants.PERM_WRITE,
     "a.b.d" : constants.PERM_DENY,
-    "b" : constants.PERM_READ
+    "b" : constants.PERM_READ,
+    "c.a.$" : constants.PERM_READ,
+    "c.a.a" : constants.PERM_READ
   }
- 
+
   def setUp(self):
     pass
 
-  def test_namespace_prefix(self):
-    obj = ModelTest()
+  def test_namespace_override(self):
+    obj = ModelTestA()
     obj.id = 1
     namespace = util.obj_to_namespace(obj)
-    self.assertEqual(namespace, "test.django_namespace_perms.modeltest.1")
+    self.assertEqual(namespace, "test.django_namespace_perms.modeltesta.1")
+
+  def test_namespace(self):
+    obj = ModelTestB()
+    obj.id=1
+    namespace = util.obj_to_namespace(obj)
+    self.assertEqual(namespace, "django_namespace_perms.modeltestb.1")
+
+  def test_model_perms(self):
+    obj = ModelTestB()
+    obj.id = 1
+    obj2 = ModelTestB()
+    obj2.id = 2
+    self.assertEqual(util.has_perms(self.perms, obj, constants.PERM_WRITE), True)
+    self.assertEqual(util.has_perms(self.perms, obj2, constants.PERM_WRITE), False)
+    self.assertEqual(util.has_perms(self.perms, [obj2, "allowedfield"], constants.PERM_READ), True)
+    self.assertEqual(util.has_perms(self.perms, [obj2, "deniedfield"], constants.PERM_READ), False)
+    self.assertEqual(util.has_perms(self.perms, [obj2, "allowedfield"], constants.PERM_WRITE), False)
 
   def test_permcode_to_namespace_view(self):
     label, flag = util.permcode_to_namespace("app.view_model")
@@ -75,7 +99,7 @@ class NSPTestCase(SimpleTestCase):
   def test_has_perms_wildcard(self):
     self.assertEqual(util.has_perms(self.perms, "b.*", constants.PERM_READ), True)
     self.assertEqual(util.has_perms(self.perms, "a.b.*", constants.PERM_READ, ambiguous=True), True)
-    self.assertEqual(util.has_perms(self.perms, "c.*", constants.PERM_READ, ambiguous=True), False)
+    self.assertEqual(util.has_perms(self.perms, "d\..*", constants.PERM_READ, ambiguous=True), False)
 
   def test_perms_apply(self):
     data = {
@@ -86,7 +110,12 @@ class NSPTestCase(SimpleTestCase):
         }
       },
       "b" : "This should be here",
-      "c" : "This should be gone"
+      "c" : {
+        "a" : {
+          "b" : "This should be gone",
+          "a" : "This should be here"
+        }
+      }
     }
     expected = {
       "a" : {
@@ -94,7 +123,12 @@ class NSPTestCase(SimpleTestCase):
           "c" : data['a']['b']['c']
         }
       },
-      "b" : data['b']
+      "b" : data['b'],
+      "c" : {
+        "a" : {
+          "a": data['c']['a']['a']
+        }
+      }
     }
 
     perms_struct = util.perms_structure(self.perms)
