@@ -111,7 +111,7 @@ Permissions dont need to target application and model names, they can be complet
 
     #check if user has read perms to a model field (User.username as example)
 
-    nsp.has_perms(user, User._meta.get_field_by_name("username"), PERM_READ)
+    nsp.has_perms(user, [User, "username"], PERM_READ)
 
     #check if user has read perms to arbitrary namespace
 
