@@ -1,4 +1,5 @@
 from django.test import SimpleTestCase
+from django.db import models
 
 from django_namespace_perms import util, constants
 
@@ -15,6 +16,14 @@ class NoDbTestRunner(DiscoverRunner):
     pass
 
 ###############################################################################
+
+class ModelTest(models.Model):
+  
+  @property
+  def nsp_prefix(self):
+    return "test"
+
+###############################################################################
 # Create your tests here.
 
 class NSPTestCase(SimpleTestCase):
@@ -28,6 +37,12 @@ class NSPTestCase(SimpleTestCase):
  
   def setUp(self):
     pass
+
+  def test_namespace_prefix(self):
+    obj = ModelTest()
+    obj.id = 1
+    namespace = util.obj_to_namespace(obj)
+    self.assertEqual(namespace, "test.django_namespace_perms.modeltest.1")
 
   def test_permcode_to_namespace_view(self):
     label, flag = util.permcode_to_namespace("app.view_model")

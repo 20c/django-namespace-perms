@@ -29,7 +29,6 @@ def load_perms(user):
   
   if hasattr(user, "_nsp_perms"):
     user._nsp_perms_struct = perms_structure(user._nsp_perms)
-    print "PERMS FROM CACHE: %s" % user._nsp_perms
     return user._nsp_perms
 
   from django_namespace_perms.models import UserPermission, UserGroup, GroupPermission
@@ -100,6 +99,8 @@ def obj_to_namespace(obj):
     )
   if hasattr(obj, "id"):
     namespace = "%s.%s" % (namespace, obj.id)
+    if hasattr(obj, "nsp_prefix"):
+      namespace = "%s.%s" % (obj.nsp_prefix, namespace)
  
 
   return namespace.lower()
@@ -113,7 +114,6 @@ def has_perms(user, namespace, level, ambiguous=False):
   if type(namespace) not in [str, unicode]:
     namespace = obj_to_namespace(namespace)
 
-  print "checking: %s : %s" % (namespace, level)
   if type(user) != dict:
     if user.is_superuser:
       return True
