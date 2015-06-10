@@ -31,15 +31,14 @@ def load_perms(user):
     user._nsp_perms_struct = perms_structure(user._nsp_perms)
     return user._nsp_perms
 
-  from django_namespace_perms.models import UserPermission, UserGroup, GroupPermission
+  from django_namespace_perms.models import UserPermission, GroupPermission
   from django.conf import settings
   from django.core.exceptions import ObjectDoesNotExist
   from django.contrib.auth.models import Group
 
   if user.is_authenticated():
     perms = UserPermission.objects.filter(user=user)
-    groups = UserGroup.objects.filter(user=user)
-    group_perms = GroupPermission.objects.filter(group__in=[g.group for g in groups])
+    group_perms = GroupPermission.objects.filter(group__in=user.groups.all())
   else:
     # guest user
     if hasattr(settings, "NSP_GUEST_GROUP"):
@@ -86,6 +85,15 @@ def permcode_to_namespace(perm):
 
 def obj_to_namespace(obj):
   namespace = str(obj)
+  if hasattr(obj, "nsp_namespace"):
+    return  obj.nsp_namespace.lower()
+
+  if type(obj) == list:
+    if len(obj) != 2:
+      raise Exception("When passing a list to obj_to_namespace it is expected to have two items: The model instance and the field name")
+    ns = "%s.%s" % (obj_to_namespace(obj[0]), obj[1].lower())
+    return ns
+
   if hasattr(obj, "db_column") and hasattr(obj, "model"):
     namespace = "%s.%s.%s" % (
       obj.model._meta.app_label, 
@@ -99,8 +107,6 @@ def obj_to_namespace(obj):
     )
   if hasattr(obj, "id"):
     namespace = "%s.%s" % (namespace, obj.id)
-    if hasattr(obj, "nsp_prefix"):
-      namespace = "%s.%s" % (obj.nsp_prefix, namespace)
  
 
   return namespace.lower()
@@ -251,14 +257,33 @@ def permissions_apply(data, perms_struct, path=''):
 
 def permissions_apply_to_serialized_model(smodel, perms_struct):
   inst = smodel.instance
-  a = inst._meta.app_label.lower()
-  b = inst._meta.model_name.lower()
-  id = str(inst.id)
+  namespace = obj_to_namespace(inst).split(".")
+  structure = d = {}
+  l = len(namespace)
+  i = 0
+  print namespace
+  while i < l:
+    k = namespace[i]
+    if i < l-1:
+      d[k] = {}
+      d = d[k]
+    else:
+      d[k] = smodel.data
+    i += 1
+
+
   r = permissions_apply(
-    {a:{b:{id:smodel.data}}},
+    structure,
     perms_struct
   )
-  return r.get(a,{}).get(b,{}).get(id,{})
+
+  print r
+
+  for k in namespace:
+    print k, r
+    r = r[k]
+
+  return r
 
 #############################################################################
 
