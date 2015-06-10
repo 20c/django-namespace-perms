@@ -40,7 +40,7 @@ class ManualUserPermissionInline(autocomplete_light.ModelForm):
   class Meta:
     model = UserPermission
     widgets = {
-      'namespace' : autocomplete_light.TextWidget('NamespaceAutocomplete', attrs={"size":50})
+      'namespace' : autocomplete_light.TextWidget('NamespaceAutocomplete', attrs={"style":"width:500px"})
     }
     fields = "__all__"
 
@@ -48,7 +48,7 @@ class ManualGroupPermissionInline(autocomplete_light.ModelForm):
   class Meta:
     model = GroupPermission
     widgets = {
-      'namespace' : autocomplete_light.TextWidget('NamespaceAutocomplete', attrs={"size":50})
+      'namespace' : autocomplete_light.TextWidget('NamespaceAutocomplete', attrs={"style":"width:500px"})
     }
     fields = "__all__"
 
