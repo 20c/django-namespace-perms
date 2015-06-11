@@ -1,6 +1,8 @@
 import re
 import constants
 
+from models import *
+
 APP_NAMESPACES = [
 ]
 
