@@ -238,35 +238,6 @@ def permissions_apply_additive(data, perms_struct):
 
 #############################################################################
 
-def perms_struct_has_explicit_rule(d, keys, perm):
-  a = d
-
-  if type(a) == int:
-    if not keys:
-      return a & perm
-    else:
-      return False
-  if not keys:
-    return False
-
-  r_a = 0 
-  r_b = 0
-  k = keys[0]
-  if a.has_key(k):
-    r_a = perms_struct_has_explicit_rule(a[k], keys[1:], perm)
-  
-  if r_a & perm:
-    return True
-
-  if a.has_key("*"):
-    r_b = perms_struct_has_explicit_rule(a["*"], keys[1:], perm)
-
-  if r_b & perm:
-    return True
-
-  return False
-  
-
 def permissions_apply_subtractive(data, perms_struct, debug=False):
   if type(data) != dict:
     raise Exception("Wanted a dict got %s" % type(data))
@@ -299,6 +270,36 @@ def permissions_apply_subtractive(data, perms_struct, debug=False):
 
 #############################################################################
 
+def perms_struct_has_explicit_rule(d, keys, perm):
+  a = d
+
+  if type(a) == int:
+    if not keys:
+      return a & perm
+    else:
+      return False
+  if not keys:
+    return False
+
+  r_a = 0 
+  r_b = 0
+  k = keys[0]
+  if a.has_key(k):
+    r_a = perms_struct_has_explicit_rule(a[k], keys[1:], perm)
+  
+  if r_a & perm:
+    return True
+
+  if a.has_key("*"):
+    r_b = perms_struct_has_explicit_rule(a["*"], keys[1:], perm)
+
+  if r_b & perm:
+    return True
+
+  return False
+ 
+#############################################################################
+
 def permissions_apply_ruleset_require_explicit(data, path, perm, perms_struct):
   d = data
   j = p = None
@@ -309,15 +310,9 @@ def permissions_apply_ruleset_require_explicit(data, path, perm, perms_struct):
       d = d[k]
     else:
       return
-
-  #print "Requiring explicit perms for %s" % path
-
   r = perms_struct_has_explicit_rule(perms_struct, keys, perm)
-  #print "Explicit perms for %s returned %s" % (path, r)
   if not r and p:
-    #print "Deleting %s from %s" % (p[1], p[0])
     del p[0][p[1]]
-    #print p
     
 
 #############################################################################
@@ -327,12 +322,13 @@ def permissions_apply(data, perms_struct, path='', debug=False, ruleset=None):
     load_perms(perms_struct)
     perms_struct = perms_struct._nsp_perms_struct
 
-
   rv = permissions_apply_additive(data, perms_struct)
+
   if debug:
     print json.dumps(rv, indent=2)
 
   permissions_apply_subtractive(rv, perms_struct)
+
   if debug:
     print json.dumps(rv, indent=2)
 
