@@ -1,5 +1,6 @@
 import re
 import constants
+import json
 
 
 APP_NAMESPACES = [
@@ -210,15 +211,24 @@ def permissions_apply_additive(data, perms_struct):
   rv = {}
   for k,v in data.items():
     if perms_struct.get(k):
-      rv[k] = permissions_apply_additive(v, perms_struct.get(k))
+      rv[k] = permissions_apply_additive(
+        v, 
+        perms_struct.get(k)
+      )
     if perms_struct.get("@%s"%k):
-      d = permissions_apply_additive(v, perms_struct.get("@%s"%k))
+      d = permissions_apply_additive(
+        v, 
+        perms_struct.get("@%s"%k)
+      )
       if type(d) == dict and type(rv.get(k)) == dict:
         rv[k].update(d)
       else:
         rv[k] = d
     if perms_struct.get("*"):
-      d = permissions_apply_additive(v, perms_struct.get("*"))
+      d = permissions_apply_additive(
+        v, 
+        perms_struct.get("*")
+      )
       if type(d) == dict and type(rv.get(k)) == dict:
         rv[k].update(d)
       else:
@@ -228,31 +238,112 @@ def permissions_apply_additive(data, perms_struct):
 
 #############################################################################
 
-def permissions_apply_subtractive(data, perms_struct):
+def perms_struct_has_explicit_rule(d, keys, perm):
+  a = d
+
+  if type(a) == int:
+    if not keys:
+      return a & perm
+    else:
+      return False
+  if not keys:
+    return False
+
+  r_a = 0 
+  r_b = 0
+  k = keys[0]
+  if a.has_key(k):
+    r_a = perms_struct_has_explicit_rule(a[k], keys[1:], perm)
+  
+  if r_a & perm:
+    return True
+
+  if a.has_key("*"):
+    r_b = perms_struct_has_explicit_rule(a["*"], keys[1:], perm)
+
+  if r_b & perm:
+    return True
+
+  return False
+  
+
+def permissions_apply_subtractive(data, perms_struct, debug=False):
+  if type(data) != dict:
+    raise Exception("Wanted a dict got %s" % type(data))
+
   for k,p in perms_struct.items():
     if k[0] == "@":
       k = k[1:]
+
     if data.has_key(k):
+
       if not p or (type(data[k]) == dict and not any(data[k])):
         del data[k]
-      elif type(p) == dict:
-        permissions_apply_subtractive(data.get(k), p)
+      elif type(data[k]) == dict and type(p) == dict:
+        permissions_apply_subtractive(
+          data.get(k), 
+          p, 
+          debug=debug
+        )
+        
     elif k == "*":
       for n,v in data.items():
         if not p or (type(data[n]) == dict and not any(data[n])):
           del data[n]
-        elif type(p) == dict:
-          permissions_apply_subtractive(v, p)
+        elif type(p) == dict and type(v) == dict:
+          permissions_apply_subtractive(
+            v, 
+            p, 
+            debug=debug
+          )
 
 #############################################################################
 
-def permissions_apply(data, perms_struct, ruleset=None, path=''):
+def permissions_apply_ruleset_require_explicit(data, path, perm, perms_struct):
+  d = data
+  j = p = None
+  keys = path.split(".")
+  for k in keys:
+    if d.has_key(k):
+      p = (d,k)
+      d = d[k]
+    else:
+      return
+
+  #print "Requiring explicit perms for %s" % path
+
+  r = perms_struct_has_explicit_rule(perms_struct, keys, perm)
+  #print "Explicit perms for %s returned %s" % (path, r)
+  if not r and p:
+    #print "Deleting %s from %s" % (p[1], p[0])
+    del p[0][p[1]]
+    #print p
+    
+
+#############################################################################
+
+def permissions_apply(data, perms_struct, path='', debug=False, ruleset=None):
   if type(perms_struct) != dict:
     load_perms(perms_struct)
     perms_struct = perms_struct._nsp_perms_struct
 
+
   rv = permissions_apply_additive(data, perms_struct)
+  if debug:
+    print json.dumps(rv, indent=2)
+
   permissions_apply_subtractive(rv, perms_struct)
+  if debug:
+    print json.dumps(rv, indent=2)
+
+  # apply ruleset
+  if ruleset:
+    for key, perm in ruleset.get("require", {}).items():
+      permissions_apply_ruleset_require_explicit(rv, key, perm, perms_struct)
+    
+  if debug:
+    print json.dumps(rv, indent=2)
+
   return rv
 
 #############################################################################
@@ -269,7 +360,7 @@ def permissions_apply_to_serialized_model(smodel, perms_struct):
       d[k] = {}
       d = d[k]
     else:
-      d[k] = smodel.data
+      d[str(k)] = smodel.data
     i += 1
 
 
