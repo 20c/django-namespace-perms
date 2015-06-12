@@ -1,7 +1,6 @@
 import re
 import constants
 
-from models import *
 
 APP_NAMESPACES = [
 ]
@@ -129,6 +128,7 @@ def has_perms(user, namespace, level, ambiguous=False):
   else:
     perms = user
 
+
   return ((check_perms(perms, namespace, ambiguous=ambiguous) & level) != 0)
 
 
@@ -246,7 +246,7 @@ def permissions_apply_subtractive(data, perms_struct):
 
 #############################################################################
 
-def permissions_apply(data, perms_struct, path=''):
+def permissions_apply(data, perms_struct, ruleset=None, path=''):
   if type(perms_struct) != dict:
     load_perms(perms_struct)
     perms_struct = perms_struct._nsp_perms_struct
@@ -263,7 +263,6 @@ def permissions_apply_to_serialized_model(smodel, perms_struct):
   structure = d = {}
   l = len(namespace)
   i = 0
-  print namespace
   while i < l:
     k = namespace[i]
     if i < l-1:
@@ -279,10 +278,8 @@ def permissions_apply_to_serialized_model(smodel, perms_struct):
     perms_struct
   )
 
-  print r
 
   for k in namespace:
-    print k, r
     r = r[k]
 
   return r
