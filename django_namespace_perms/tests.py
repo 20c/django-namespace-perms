@@ -2,6 +2,7 @@ from django.test import SimpleTestCase
 from django.db import models
 
 from django_namespace_perms import util, constants
+import json
 
 ###############################################################################
 """
@@ -37,9 +38,16 @@ class NSPTestCase(SimpleTestCase):
     "a.b" : constants.PERM_READ,
     "a.b.c" : constants.PERM_READ | constants.PERM_WRITE,
     "a.b.d" : constants.PERM_DENY,
+    "a.100" : constants.PERM_READ,
     "b" : constants.PERM_READ,
     "c.a.$" : constants.PERM_READ,
-    "c.a.a" : constants.PERM_READ
+    "c.a.a" : constants.PERM_READ,
+
+    "x" : constants.PERM_READ,
+    "x.c" : constants.PERM_READ,
+    "x.*.z" : constants.PERM_READ,
+    "x.*.z.c" : constants.PERM_READ,
+    "x.y.z.d" : constants.PERM_READ
   }
 
   def setUp(self):
@@ -107,7 +115,8 @@ class NSPTestCase(SimpleTestCase):
         "b": {
           "c" : "This should be here",
           "d" : "This should be gone"
-        }
+        },
+        "100" : "This should be here"
       },
       "b" : "This should be here",
       "c" : {
@@ -119,6 +128,7 @@ class NSPTestCase(SimpleTestCase):
     }
     expected = {
       "a" : {
+        "100" : data["a"]["100"],
         "b" : {
           "c" : data['a']['b']['c']
         }
@@ -134,4 +144,86 @@ class NSPTestCase(SimpleTestCase):
     perms_struct = util.perms_structure(self.perms)
     result = util.permissions_apply(data, perms_struct)
     self.assertEqual(expected, result)
+
+  def test_apply_with_permset(self):
+    data = {
+      "x" : {
+        "a" : "This should be here",
+        "b" : "This should be gone",
+        "c" : "This should be here",
+        "d" : "This should be here",
+        "y": {
+          "z" : {
+            "a" : "This should be here",
+            "b" : "This should be gone",
+            "c" : "This should be here",
+            "d" : "This should be here"
+          }
+        }
+      }
+    }
+
+    expected = {
+      "x" : {
+        "a" : data["x"]["a"],
+        "c" : data["x"]["c"],
+        "d" : data["x"]["d"],
+        "y" : {
+          "z" : {
+            "a" : data["x"]["y"]["z"]["a"],
+            "c" : data["x"]["y"]["z"]["c"],
+            "d" : data["x"]["y"]["z"]["d"]
+          }
+        }
+      }
+    }
+
+    ruleset = {
+      "require" : {
+        "x.b" : 0x01,
+        "x.c" : 0x01,
+        "x.y.z.b" : 0x01,
+        "x.y.z.c" : 0x01,
+        "x.y.z.d" : 0x01
+      }
+    }
+
+    perms_struct = util.perms_structure(self.perms)
+    result = util.permissions_apply(data, perms_struct, debug=False, ruleset=ruleset)
+    self.assertEqual(expected, result)
+
+
+  def test_performance(self):
+    
+    def mkdataset(depth=3):
+      depth = depth - 1
+      if depth <= 0:
+        return
+      return dict([(str(k),mkdataset(depth=depth)) for k in range(1,1000)])
+    data = {
+      "a" : mkdataset(3),
+      "b" : mkdataset(3)
+    }
+
+    ruleset = {
+      "require" : {
+        "a.100.100" : 0x01,
+      }
+    }
+
+    ruleset["require"].update(**dict([("b.100.%d" % i, 0x01) for i in range(1,100)]))
+
+    import time
+    
+    perms_struct = util.perms_structure(self.perms)
+    
+    t= time.time()
+    result = util.permissions_apply(data, perms_struct, debug=False)
+    diff = time.time() - t
+    print "\n\nPerformance test took: %.5f seconds" % (diff)
+    
+    t = time.time()
+    result = util.permissions_apply(data, perms_struct, debug=False, ruleset=ruleset)
+    diff = time.time() - t
+    print "\n\nPerformance (w/ Explicit ruleset) test took: %.5f seconds" % (diff)
 
