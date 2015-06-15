@@ -43,6 +43,9 @@ class NSPTestCase(SimpleTestCase):
     "c.a.$" : constants.PERM_READ,
     "c.a.a" : constants.PERM_READ,
 
+    "e.a" : constants.PERM_READ,
+    "e.a.b" : constants.PERM_READ,
+
     "x" : constants.PERM_READ,
     "x.c" : constants.PERM_READ,
     "x.*.z" : constants.PERM_READ,
@@ -103,6 +106,10 @@ class NSPTestCase(SimpleTestCase):
     self.assertEqual(util.has_perms(self.perms, "a.b.c", constants.PERM_READ), True)
     self.assertEqual(util.has_perms(self.perms, "a.b.d", constants.PERM_READ), False)
     self.assertEqual(util.has_perms(self.perms, "a.b.d", constants.PERM_WRITE), False)
+    
+    self.assertEqual(util.has_perms(self.perms, "e.a.a", constants.PERM_READ, explicit=True), False)
+    self.assertEqual(util.has_perms(self.perms, "e.a.b", constants.PERM_READ, explicit=True), True)
+
 
   def test_has_perms_wildcard(self):
     self.assertEqual(util.has_perms(self.perms, "b.*", constants.PERM_READ), True)

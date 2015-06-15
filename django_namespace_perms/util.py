@@ -117,7 +117,7 @@ def obj_to_namespace(obj):
 
 #############################################################################
 
-def has_perms(user, namespace, level, ambiguous=False):
+def has_perms(user, namespace, level, ambiguous=False, explicit=False):
   
   if type(namespace) not in [str, unicode]:
     namespace = obj_to_namespace(namespace)
@@ -126,9 +126,15 @@ def has_perms(user, namespace, level, ambiguous=False):
     if user.is_superuser:
       return True
     perms = load_perms(user)
+    permstruct = user._nsp_perms_struct
   else:
     perms = user
+    permstruct = {}
 
+  if explicit:
+    if not permstruct:
+      permstruct = perms_structure(perms)
+    return perms_struct_has_explicit_rule(permstruct, namespace.split("."), level)
 
   return ((check_perms(perms, namespace, ambiguous=ambiguous) & level) != 0)
 
@@ -272,8 +278,9 @@ def permissions_apply_subtractive(data, perms_struct, debug=False):
 
 def perms_struct_has_explicit_rule(d, keys, perm):
   a = d
+  t = type(a)
 
-  if type(a) == int:
+  if t == int or t == long:
     if not keys:
       return a & perm
     else:
@@ -344,10 +351,15 @@ def permissions_apply(data, perms_struct, path='', debug=False, ruleset=None):
 
 #############################################################################
 
-def permissions_apply_to_serialized_model(smodel, perms_struct):
+def permissions_apply_to_serialized_model(smodel, perms_struct, ruleset={}):
   inst = smodel.instance
-  namespace = obj_to_namespace(inst).split(".")
+  namespace_str = obj_to_namespace(inst)
+  namespace = namespace_str.split(".")
   structure = d = {}
+
+  if hasattr(inst, "nsp_ruleset"):
+    ruleset.update(inst.nsp_ruleset)
+
   l = len(namespace)
   i = 0
   while i < l:
@@ -359,12 +371,22 @@ def permissions_apply_to_serialized_model(smodel, perms_struct):
       d[str(k)] = smodel.data
     i += 1
 
+  # prepare ruleset
+  if ruleset:
+    _ruleset = {}
+    for section, rules in ruleset.items():
+      _ruleset[section] = {}
+      for rule, perms in rules.items():
+        _ruleset[section]["%s.%s" % (namespace_str, rule)] = perms
+    ruleset = _ruleset
+
+  print structure
 
   r = permissions_apply(
     structure,
-    perms_struct
+    perms_struct,
+    ruleset=ruleset
   )
-
 
   for k in namespace:
     r = r[k]
