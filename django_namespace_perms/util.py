@@ -11,6 +11,51 @@ NAMESPACES = [
 
 #############################################################################
 
+class PermissionFrame(object):
+  def __init__(self, p):
+#    print "PermissionFrame", p
+    self.value = p
+
+  def has_value(self):
+    return (self.value is not None)
+
+  def check(self, level):
+    if self.value is None:
+      return False
+    return (self.value & level) != 0
+
+#############################################################################
+
+def dict_from_namespace(keys, data):
+  if type(keys) != list:
+    keys = keys.split(".")
+  root = p = d = {}
+  j = 0
+  for k in keys:
+    d[k] = {}
+    p = d
+    d = d[k]
+  p[k] = data
+  return root
+
+def dict_has_value(data, value):
+  if data == value:
+    return True
+  for k, item in data.items():
+    return dict_has_value(item, value)
+  return False
+
+def dict_get_path(data, keys):
+  for k in keys:
+    if data.has_key(k):
+      data = data[k]
+    else:
+      return None
+  return data
+
+
+#############################################################################
+
 def autodiscover_namespaces(*models):
   for model in models:
     ns = "%s.%s" % (model._meta.app_label, model._meta.model_name)
@@ -118,6 +163,26 @@ def obj_to_namespace(obj):
 #############################################################################
 
 def has_perms(user, namespace, level, ambiguous=False, explicit=False):
+
+  """
+  Check if a user has perms to the specified name space.
+
+  This should be the primary function you call to check if a user has access to
+  something.
+
+  user <dict|AUTH_USER_MODEL> - the user's permissions, can be a perm_structure dict
+  a load_perms dict or the User model itself. Passing the user model may force a call
+  of load_perms if they had not been loade yet.
+
+  namespace <string|ModelInstance|list> - the namespace to check, can be the namespace
+  string itself, the instance of a django model or a list holding the instance of a
+  django model at index 0 and a model field name at index 1
+
+  level <int> - permission level to check
+
+  explicit <bool=False> - if true, explicit permissions are required to the
+  full path provided in namespace, partial namespace matches will be ignored.
+  """
   
   if type(namespace) not in [str, unicode]:
     namespace = obj_to_namespace(namespace)
@@ -129,14 +194,14 @@ def has_perms(user, namespace, level, ambiguous=False, explicit=False):
     permstruct = user._nsp_perms_struct
   else:
     perms = user
-    permstruct = {}
+    if not perms.has_key("__ps"):
+      permstruct = perms_structure(perms)
+    else:
+      permstruct = perms
 
   if explicit:
-    if not permstruct:
-      permstruct = perms_structure(perms)
-    return perms_struct_has_explicit_rule(permstruct, namespace.split("."), level)
-
-  return ((check_perms(perms, namespace, ambiguous=ambiguous) & level) != 0)
+    return get_perms(permstruct, namespace.split("."), explicit=True).check(level)
+  return get_perms(permstruct, namespace.split(".")).check(level)
 
 
 #############################################################################
@@ -144,6 +209,8 @@ def has_perms(user, namespace, level, ambiguous=False, explicit=False):
 def check_perms(perms, prefix, ambiguous=False):
 
   """
+  DEPRECATED - replaced by get_perms
+
   Return the user's perms for the specified prefix
 
   perms <dict> permissions dict
@@ -276,34 +343,41 @@ def permissions_apply_subtractive(data, perms_struct, debug=False):
 
 #############################################################################
 
-def perms_struct_has_explicit_rule(d, keys, perm):
-  a = d
-  t = type(a)
+def get_perms(d, keys, explicit=False):
+  t = type(d)
+
+  #print "checking for",keys,"in",d,explicit
 
   if t == int or t == long:
-    if not keys:
-      return a & perm
-    else:
-      return False
+    if explicit and keys:
+      return PermissionFrame(None)
+    return PermissionFrame(d)
   if not keys:
-    return False
+    return PermissionFrame(None)
 
   r_a = 0 
   r_b = 0
   k = keys[0]
-  if a.has_key(k):
-    r_a = perms_struct_has_explicit_rule(a[k], keys[1:], perm)
+  if d.has_key(k):
+    r_a = get_perms(d[k], keys[1:], explicit=explicit)
+    if r_a.has_value():
+      return r_a
+
+  if d.has_key("@%s" % k):
+    r_c = get_perms(d["@%s" % k], keys[1:], explicit=explicit)
+    if r_c.has_value():
+      return r_c
   
-  if r_a & perm:
-    return True
+  if d.has_key("*"):
+    r_b = get_perms(d["*"], keys[1:], explicit=explicit)
+    if r_b.has_value():
+      return r_b
 
-  if a.has_key("*"):
-    r_b = perms_struct_has_explicit_rule(a["*"], keys[1:], perm)
+  return PermissionFrame(None)
+ 
 
-  if r_b & perm:
-    return True
-
-  return False
+def perms_struct_has_explicit_rule(d, keys, level):
+  return get_perms(d, keys, explicit=True).check(level)
  
 #############################################################################
 
@@ -321,6 +395,33 @@ def permissions_apply_ruleset_require_explicit(data, path, perm, perms_struct):
   if not r and p:
     del p[0][p[1]]
     
+
+#############################################################################
+
+def permissions_apply_list_handlers(data, perms_struct, list_handlers, path=[]):
+  for k,v in data.items():
+    if list_handlers.has_key(k) or list_handlers.has_key("*"):
+      hdl = list_handlers.get(k, list_handlers.get("*"))
+      if type(v) is list:
+        if not path:
+          _path = [k]
+        else:
+          _path = path + [k]
+        if callable(hdl.get("namespace")):
+          n = []
+          for item in v:
+            p = _path + hdl.get("namespace")(item).split(".")
+            r = permissions_apply(
+              dict_from_namespace(p, item), 
+              perms_struct, 
+              ruleset=hdl.get("ruleset")
+            )
+            d = dict_get_path(r, p)
+            if d:
+              n.append(d)
+          data[k] = n
+      else:
+        permissions_apply_list_handlers(v, perms_struct, list_handlers[k], path=path+[k])
 
 #############################################################################
 
@@ -343,6 +444,8 @@ def permissions_apply(data, perms_struct, path='', debug=False, ruleset=None):
   if ruleset:
     for key, perm in ruleset.get("require", {}).items():
       permissions_apply_ruleset_require_explicit(rv, key, perm, perms_struct)
+    if ruleset.has_key("list-handlers"):
+      permissions_apply_list_handlers(rv, perms_struct, ruleset.get("list-handlers"))
     
   if debug:
     print json.dumps(rv, indent=2)
@@ -380,8 +483,6 @@ def permissions_apply_to_serialized_model(smodel, perms_struct, ruleset={}):
         _ruleset[section]["%s.%s" % (namespace_str, rule)] = perms
     ruleset = _ruleset
 
-  print structure
-
   r = permissions_apply(
     structure,
     perms_struct,
@@ -389,14 +490,14 @@ def permissions_apply_to_serialized_model(smodel, perms_struct, ruleset={}):
   )
 
   for k in namespace:
-    r = r[k]
+    r = r.get(k,{})
 
   return r
 
 #############################################################################
 
 def perms_structure(perms):
-  perms_wc = {}
+  perms_wc = {"__ps":True}
   for ns, p in perms.items():
     pieces = ns.split(".")
     a = prev = perms_wc 

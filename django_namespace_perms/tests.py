@@ -46,6 +46,12 @@ class NSPTestCase(SimpleTestCase):
     "e.a" : constants.PERM_READ,
     "e.a.b" : constants.PERM_READ,
 
+    "f.1" : constants.PERM_READ,
+    "g.a.1" : constants.PERM_READ,
+    "g.b" : constants.PERM_READ,
+    "g.c" : constants.PERM_READ,
+    "g.c.3" : constants.PERM_READ,
+
     "x" : constants.PERM_READ,
     "x.c" : constants.PERM_READ,
     "x.*.z" : constants.PERM_READ,
@@ -199,8 +205,71 @@ class NSPTestCase(SimpleTestCase):
     result = util.permissions_apply(data, perms_struct, debug=False, ruleset=ruleset)
     self.assertEqual(expected, result)
 
+  def test_list_handlers(self):
+    
+    data = {
+      "f" : [
+        {"a" : 1, "b" : "should be here" },
+        {"a" : 2, "b" : "should be gone" }
+      ],
+      "g" : {
+        "a" : [
+          {"a" : 1, "b" : "should be here" },
+          {"a" : 2, "b" : "should be gone" }
+        ],
+        "b" : "should be here",
+        "c" : [
+          {"a" : 1, "b" : "should be gone" },
+          {"a" : 2, "b" : "should be gone" },
+          {"a" : 3, "b" : "should be here" }
+        ]
+      }
+    }
 
-  def test_performance(self):
+    expected = {
+      "f" : [
+        data["f"][0]
+      ],
+      "g" : {
+        "a" : [
+          data["g"]["a"][0]
+        ],
+        "c" : [
+          data["g"]["c"][2]
+        ],
+        "b" : data["g"]["b"]
+      }
+    }
+
+    ruleset = {
+      "list-handlers" : {
+        "f" : {
+          "namespace" : lambda x: str(x["a"])
+        },
+        "g" : {
+          "a" : {
+            "namespace" : lambda x: str(x["a"])
+          },
+          "c" : {
+            "namespace" : lambda x: str(x["a"]),
+            "ruleset" : {
+              "require": {
+                "g.c.1" : 0x01,
+                "g.c.2" : 0x01,
+                "g.c.3" : 0x01
+              }
+            }
+          }
+        }
+      }
+    }
+
+    perms_struct = util.perms_structure(self.perms)
+    result = util.permissions_apply(data, perms_struct, debug=False, ruleset=ruleset)
+    self.assertEqual(expected, result)
+    
+
+  def _test_performance(self):
     
     def mkdataset(depth=3):
       depth = depth - 1
