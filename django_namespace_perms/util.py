@@ -26,6 +26,9 @@ class PermissionFrame(object):
 
 #############################################################################
 
+def dict_valid(v):
+  return hasattr(v, "items") and callable(v.items)
+
 def dict_from_namespace(keys, data):
   if type(keys) != list:
     keys = keys.split(".")
@@ -277,8 +280,8 @@ def check_perms(perms, prefix, ambiguous=False):
 def permissions_apply_additive(data, perms_struct):
   if not perms_struct:
     return {}
-
-  if type(perms_struct) != dict or type(data) != dict:
+  
+  if not dict_valid(perms_struct) or not dict_valid(data):
     return data
 
   rv = {}
@@ -293,7 +296,7 @@ def permissions_apply_additive(data, perms_struct):
         v, 
         perms_struct.get("@%s"%k)
       )
-      if type(d) == dict and type(rv.get(k)) == dict:
+      if dict_valid(d) and dict_valid(rv.get(k)):
         rv[k].update(d)
       else:
         rv[k] = d
@@ -302,7 +305,7 @@ def permissions_apply_additive(data, perms_struct):
         v, 
         perms_struct.get("*")
       )
-      if type(d) == dict and type(rv.get(k)) == dict:
+      if dict_valid(d) and dict_valid(rv.get(k)):
         rv[k].update(d)
       else:
         rv[k] = d
@@ -312,8 +315,8 @@ def permissions_apply_additive(data, perms_struct):
 #############################################################################
 
 def permissions_apply_subtractive(data, perms_struct, debug=False):
-  if type(data) != dict:
-    raise Exception("Wanted a dict got %s" % type(data))
+  if not dict_valid(data):
+    raise Exception("Wanted a dict or dict-like object got %s" % type(data))
 
   for k,p in perms_struct.items():
     if k[0] == "@":
@@ -321,7 +324,7 @@ def permissions_apply_subtractive(data, perms_struct, debug=False):
 
     if data.has_key(k):
 
-      if not p or (type(data[k]) == dict and not any(data[k])):
+      if not p or (dict_valid(data[k]) and not any(data[k])):
         del data[k]
       elif type(data[k]) == dict and type(p) == dict:
         permissions_apply_subtractive(
@@ -332,9 +335,9 @@ def permissions_apply_subtractive(data, perms_struct, debug=False):
         
     elif k == "*":
       for n,v in data.items():
-        if not p or (type(data[n]) == dict and not any(data[n])):
+        if not p or (dict_valid(data[n]) and not any(data[n])):
           del data[n]
-        elif type(p) == dict and type(v) == dict:
+        elif dict_valid(p) and dict_valid(v):
           permissions_apply_subtractive(
             v, 
             p, 
@@ -381,52 +384,114 @@ def perms_struct_has_explicit_rule(d, keys, level):
  
 #############################################################################
 
-def permissions_apply_ruleset_require_explicit(data, path, perm, perms_struct):
+def permissions_apply_ruleset_require_explicit(data, path, perm, perms_struct, full_path=None):
   d = data
   j = p = None
-  keys = path.split(".")
+  a = 0
+  
+  if type(path) is not list:
+    keys = path.split(".")
+  else:
+    keys = path
+
   for k in keys:
-    if d.has_key(k):
-      p = (d,k)
-      d = d[k]
-    else:
+    if k == "*":
+      if not dict_valid(d):
+        return
+      for i,j in d.items():
+        permissions_apply_ruleset_require_explicit(
+          j, keys[a+1:], perm, perms_struct, full_path=keys[:a]+[i]
+        )
       return
-  r = perms_struct_has_explicit_rule(perms_struct, keys, perm)
+    else:
+      if dict_valid(d) and d.has_key(k):
+        p = (d,k)
+        d = d[k]
+      else:
+        return
+
+    a += 1
+  if full_path is None:
+    r = perms_struct_has_explicit_rule(perms_struct, keys, perm)
+  else:
+    r = perms_struct_has_explicit_rule(perms_struct, full_path + keys, perm)
   if not r and p:
     del p[0][p[1]]
     
 
 #############################################################################
 
-def permissions_apply_list_handlers(data, perms_struct, list_handlers, path=[]):
-  for k,v in data.items():
-    if list_handlers.has_key(k) or list_handlers.has_key("*"):
-      hdl = list_handlers.get(k, list_handlers.get("*"))
-      if type(v) is list:
-        if not path:
-          _path = [k]
-        else:
-          _path = path + [k]
-        if callable(hdl.get("namespace")):
-          n = []
-          for item in v:
-            p = _path + hdl.get("namespace")(item).split(".")
-            r = permissions_apply(
-              dict_from_namespace(p, item), 
-              perms_struct, 
-              ruleset=hdl.get("ruleset")
-            )
-            d = dict_get_path(r, p)
-            if d:
-              n.append(d)
-          data[k] = n
+def permissions_apply_list_handler(data, path, handler, perms_struct, ruleset={}, full_path=None, container=None):
+
+  d = data
+  a = 0
+  
+  if type(path) is not list:
+    keys = path.split(".")
+  else:
+    keys = path
+
+  l = len(keys)
+
+  for k in keys:
+    if k == "*":
+      if dict_valid(d): 
+        for i,j in d.items():
+          
+          if a < l-1:
+            _keys = keys[a+1:]
+          else:
+            _keys = []
+          permissions_apply_list_handler(
+            j, _keys, handler, perms_struct, full_path=keys[:a]+[i],container=(d,i), ruleset=ruleset
+          )
+        return
+      elif type(d) is not list:
+        return
+    else:
+      if dict_valid(d) and d.has_key(k):
+        container = (d,k)
+        d = d[k]
       else:
-        permissions_apply_list_handlers(v, perms_struct, list_handlers[k], path=path+[k])
+        return
+
+    a += 1
+
+  if d:
+    n = []
+    rs = {}
+    if ruleset.has_key("require"):
+      rs.update(require=ruleset.get("require"))
+    rs.update(handler.get("ruleset",{}))
+    if full_path:
+      _path = full_path + keys
+    else:
+      _path = keys
+
+    for item in d:
+      
+      if dict_valid(item):
+        final_path = _path +handler.get("namespace")(**item).split(".")
+      else:
+        final_path = _path + handler.get("namespace")(obj=item).split(".")
+      
+      r = permissions_apply(
+        dict_from_namespace(final_path, item), 
+        perms_struct, 
+        ruleset=rs
+      )
+      r = dict_get_path(r, final_path)
+      if r:
+        n.append(r)
+
+    container[0][container[1]] = n
+
+
 
 #############################################################################
 
 def permissions_apply(data, perms_struct, path='', debug=False, ruleset=None):
-  if type(perms_struct) != dict:
+  if not dict_valid(perms_struct):
     load_perms(perms_struct)
     perms_struct = perms_struct._nsp_perms_struct
 
@@ -444,8 +509,8 @@ def permissions_apply(data, perms_struct, path='', debug=False, ruleset=None):
   if ruleset:
     for key, perm in ruleset.get("require", {}).items():
       permissions_apply_ruleset_require_explicit(rv, key, perm, perms_struct)
-    if ruleset.has_key("list-handlers"):
-      permissions_apply_list_handlers(rv, perms_struct, ruleset.get("list-handlers"))
+    for key, hdl in ruleset.get("list-handlers", {}).items():
+      permissions_apply_list_handler(rv, key, hdl, perms_struct, ruleset=ruleset)
     
   if debug:
     print json.dumps(rv, indent=2)
@@ -454,7 +519,7 @@ def permissions_apply(data, perms_struct, path='', debug=False, ruleset=None):
 
 #############################################################################
 
-def permissions_apply_to_serialized_model(smodel, perms_struct, ruleset={}):
+def permissions_apply_to_serialized_model(smodel, perms_struct, data=None, ruleset={}):
   inst = smodel.instance
   namespace_str = obj_to_namespace(inst)
   namespace = namespace_str.split(".")
@@ -470,10 +535,12 @@ def permissions_apply_to_serialized_model(smodel, perms_struct, ruleset={}):
     if i < l-1:
       d[k] = {}
       d = d[k]
-    else:
+    elif data is None:
       d[str(k)] = smodel.data
+    else:
+      d[str(k)] = data
     i += 1
-
+  
   # prepare ruleset
   if ruleset:
     _ruleset = {}
@@ -482,6 +549,8 @@ def permissions_apply_to_serialized_model(smodel, perms_struct, ruleset={}):
       for rule, perms in rules.items():
         _ruleset[section]["%s.%s" % (namespace_str, rule)] = perms
     ruleset = _ruleset
+
+  print ruleset
 
   r = permissions_apply(
     structure,

@@ -52,6 +52,8 @@ class NSPTestCase(SimpleTestCase):
     "g.c" : constants.PERM_READ,
     "g.c.3" : constants.PERM_READ,
 
+    "h" : constants.PERM_READ,
+
     "x" : constants.PERM_READ,
     "x.c" : constants.PERM_READ,
     "x.*.z" : constants.PERM_READ,
@@ -166,6 +168,10 @@ class NSPTestCase(SimpleTestCase):
         "c" : "This should be here",
         "d" : "This should be here",
         "y": {
+          "y" : {
+            "a" : "This should be here",
+            "b" : "This should be gone"
+          },
           "z" : {
             "a" : "This should be here",
             "b" : "This should be gone",
@@ -182,6 +188,9 @@ class NSPTestCase(SimpleTestCase):
         "c" : data["x"]["c"],
         "d" : data["x"]["d"],
         "y" : {
+          "y" : {
+            "a" : data["x"]["y"]["y"]["a"]
+          },
           "z" : {
             "a" : data["x"]["y"]["z"]["a"],
             "c" : data["x"]["y"]["z"]["c"],
@@ -195,7 +204,7 @@ class NSPTestCase(SimpleTestCase):
       "require" : {
         "x.b" : 0x01,
         "x.c" : 0x01,
-        "x.y.z.b" : 0x01,
+        "x.y.*.b" : 0x01,
         "x.y.z.c" : 0x01,
         "x.y.z.d" : 0x01
       }
@@ -223,6 +232,16 @@ class NSPTestCase(SimpleTestCase):
           {"a" : 2, "b" : "should be gone" },
           {"a" : 3, "b" : "should be here" }
         ]
+      },
+      "h" : {
+        "a" : [
+          {"a" : 1, "b" : "should be here" },
+          {"a" : 2, "b" : "should be gone" }
+        ],
+        "b" : [
+          {"a" : 1, "b" : "should be here" },
+          {"a" : 2, "b" : "should be gone" }
+        ]
       }
     }
 
@@ -238,28 +257,35 @@ class NSPTestCase(SimpleTestCase):
           data["g"]["c"][2]
         ],
         "b" : data["g"]["b"]
+      },
+      "h" : {
+        "a" : [data["h"]["a"][0]],
+        "b" : [data["h"]["b"][0]]
       }
     }
 
+    def namespace_builder(**kwargs):
+      return str(kwargs.get("a"))
+
     ruleset = {
+      "require": {
+        "g.c.1" : 0x01,
+        "g.c.2" : 0x01,
+        "g.c.3" : 0x01,
+        "h.*.2" : 0x01
+      },
       "list-handlers" : {
         "f" : {
-          "namespace" : lambda x: str(x["a"])
+          "namespace" : namespace_builder
         },
-        "g" : {
-          "a" : {
-            "namespace" : lambda x: str(x["a"])
-          },
-          "c" : {
-            "namespace" : lambda x: str(x["a"]),
-            "ruleset" : {
-              "require": {
-                "g.c.1" : 0x01,
-                "g.c.2" : 0x01,
-                "g.c.3" : 0x01
-              }
-            }
-          }
+        "g.a" : {
+          "namespace" : namespace_builder
+        },
+        "g.c" : {
+          "namespace" : namespace_builder
+        },
+        "h.*" : {
+          "namespace" : namespace_builder
         }
       }
     }
