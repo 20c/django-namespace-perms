@@ -267,6 +267,9 @@ class NSPTestCase(SimpleTestCase):
     def namespace_builder(**kwargs):
       return str(kwargs.get("a"))
 
+    def namespace_builder_absolute(**kwargs):
+      return "g.a.%s" % kwargs.get("a")
+
     ruleset = {
       "require": {
         "g.c.1" : 0x01,
@@ -279,7 +282,8 @@ class NSPTestCase(SimpleTestCase):
           "namespace" : namespace_builder
         },
         "g.a" : {
-          "namespace" : namespace_builder
+          "namespace" : namespace_builder_absolute,
+          "absolute" : True
         },
         "g.c" : {
           "namespace" : namespace_builder

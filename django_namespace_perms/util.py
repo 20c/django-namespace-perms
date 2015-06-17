@@ -469,11 +469,16 @@ def permissions_apply_list_handler(data, path, handler, perms_struct, ruleset={}
       _path = keys
 
     for item in d:
-      
+     
       if dict_valid(item):
-        final_path = _path +handler.get("namespace")(**item).split(".")
+        final_path = handler.get("namespace")(**item).lower().split(".")
       else:
-        final_path = _path + handler.get("namespace")(obj=item).split(".")
+        final_path = handler.get("namespace")(obj=item).lower().split(".")
+
+      if not handler.get("absolute"):
+        final_path = _path + final_path
+
+      #print final_path, item
       
       r = permissions_apply(
         dict_from_namespace(final_path, item), 
@@ -549,8 +554,6 @@ def permissions_apply_to_serialized_model(smodel, perms_struct, data=None, rules
       for rule, perms in rules.items():
         _ruleset[section]["%s.%s" % (namespace_str, rule)] = perms
     ruleset = _ruleset
-
-  print ruleset
 
   r = permissions_apply(
     structure,
