@@ -52,7 +52,7 @@ class PermissionedModelSerializer(serializers.ModelSerializer):
 
     if user:
       r = permissions_apply_to_serialized_model(
-        self,
+        instance,
         user,
         data=r
       )

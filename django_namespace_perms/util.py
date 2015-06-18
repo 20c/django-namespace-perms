@@ -2,6 +2,8 @@ import re
 import constants
 import json
 
+from django.db.models.query import QuerySet
+
 
 APP_NAMESPACES = [
 ]
@@ -108,8 +110,6 @@ def load_perms(user):
   for perm in perms:
     permdict[perm.namespace] = perm.permissions
 
-  print permdict
-
   user._nsp_perms = permdict
   user._nsp_perms_struct = perms_structure(permdict)
 
@@ -137,6 +137,7 @@ def obj_to_namespace(obj):
   namespace = str(obj)
   if hasattr(obj, "nsp_namespace"):
     return  obj.nsp_namespace.lower()
+
 
   if type(obj) == list:
     if len(obj) != 2:
@@ -525,7 +526,11 @@ def permissions_apply(data, perms_struct, path='', debug=False, ruleset=None):
 #############################################################################
 
 def permissions_apply_to_serialized_model(smodel, perms_struct, data=None, ruleset={}):
-  inst = smodel.instance
+  if hasattr(smodel, "instance"):
+    inst = smodel.instance
+  else:
+    inst = smodel
+
   namespace_str = obj_to_namespace(inst)
   namespace = namespace_str.split(".")
   structure = d = {}
