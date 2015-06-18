@@ -22,6 +22,6 @@ setup(
     url = 'https://github.com/20c/django-namespace-perms',
     download_url = 'https://github.com/20c/django-namespace-perms/%s'%version,
     include_package_data=True,
-    install_requires=requires,
+    install_requires=requirements,
     zip_safe=False
 )
