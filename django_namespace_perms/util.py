@@ -189,6 +189,8 @@ def has_perms(user, namespace, level, ambiguous=False, explicit=False):
   """
   
   if type(namespace) not in [str, unicode]:
+    if hasattr(namespace, "nsp_require_explicit"):
+      explicit = namespace.nsp_require_explicit
     namespace = obj_to_namespace(namespace)
 
   if type(user) != dict:
