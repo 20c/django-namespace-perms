@@ -51,6 +51,11 @@ class PermissionedModelSerializer(serializers.ModelSerializer):
       user = req.user
 
     if user:
+      
+      # superusers can see everything
+      if user.is_superuser:
+        return r
+
       r = permissions_apply_to_serialized_model(
         instance,
         user,
