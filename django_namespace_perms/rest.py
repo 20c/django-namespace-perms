@@ -8,6 +8,7 @@ from django_namespace_perms.util import (
 
 from django_namespace_perms.constants import PERM_READ, PERM_WRITE 
 import logging
+from exceptions import PermissionDenied
 
 
 log = logging.getLogger(__name__)
@@ -19,11 +20,17 @@ class BasePermission(permissions.BasePermission):
     log.debug(msg)
   
   def has_permission(self, request, view):
-    self.debug("Check permission: %s, %s" % (request.method, view))
+    """
+    self.debug("Check permission: %s, %s" % (request.method, view.model))
     if request.method == "POST":
       return has_perms(request.user, view.model, PERM_WRITE)
     else:
       return True
+    """
+    # since instance of object does not exist yet and we have no access to the
+    # serializer data we need to handle POST permission checks during
+    # PermissionedModelSerializer.create - always return true here.
+    return True
 
   def has_object_permission(self, request, view, obj):
     self.debug("Check Object permissions %s, %s, %s" % (
@@ -38,6 +45,18 @@ class BasePermission(permissions.BasePermission):
       return has_perms(request.user, obj, PERM_WRITE)
 
 class PermissionedModelSerializer(serializers.ModelSerializer):
+
+  def create(self, validated_data):
+    if hasattr(self, "nsp_namespace_create"):
+      user = self.context.get("request").user
+      if user and has_perms(user, self.nsp_namespace_create(validated_data), PERM_WRITE):
+        return serializers.ModelSerializer.create(self, validated_data)
+      else:
+        raise PermissionDenied("User not set in serializer context, or user does not have write permissions")
+    else:
+      raise PermissionDenied("Serializer missing classmethod '%s' - so we have no way to determine permissioning namespace for instance creation" % "nsp_namespace_create")
+      
+
   def to_representation(self, instance):
     """
     Apply permissions to serialized data before sending it out for
