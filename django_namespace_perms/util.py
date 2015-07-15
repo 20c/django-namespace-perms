@@ -1,6 +1,7 @@
 import re
 import constants
 import json
+import inspect
 
 from django.db.models.query import QuerySet
 
@@ -135,6 +136,14 @@ def permcode_to_namespace(perm):
 
 def obj_to_namespace(obj):
   namespace = str(obj)
+
+  if inspect.isclass(obj):
+    # class passed check existance of possible class methods
+    if hasattr(obj, "nsp_namespace_create"):
+      return obj.nsp_namespace_create().lower()
+    elif hasattr(obj, "nsp_namespace_base"):
+      return obj.nsp_namespace_base().lower()
+
   if hasattr(obj, "nsp_namespace"):
     return  obj.nsp_namespace.lower()
 

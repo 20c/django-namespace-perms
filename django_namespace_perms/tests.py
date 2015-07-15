@@ -27,6 +27,16 @@ class ModelTestB(models.Model):
   allowedField = models.CharField(max_length=255)
   deniedField = models.CharField(max_length=255)
 
+class ModelTestC(models.Model):
+  @classmethod
+  def nsp_namespace_base(cls):
+    return "test.django_namespace_perms"
+
+class ModelTestD(ModelTestC):
+  @classmethod
+  def nsp_namespace_create(cls):
+    return "create.test.django_namespace_perms"
+
 ###############################################################################
 # Create your tests here.
 
@@ -75,6 +85,10 @@ class NSPTestCase(SimpleTestCase):
     obj.id=1
     namespace = util.obj_to_namespace(obj)
     self.assertEqual(namespace, "django_namespace_perms.modeltestb.1")
+
+  def test_namespace_classmethods(self):
+    self.assertEqual(util.obj_to_namespace(ModelTestC), "test.django_namespace_perms")
+    self.assertEqual(util.obj_to_namespace(ModelTestD), "create.test.django_namespace_perms")
 
   def test_model_perms(self):
     obj = ModelTestB()
