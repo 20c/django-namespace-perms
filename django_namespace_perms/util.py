@@ -298,11 +298,16 @@ def permissions_apply_additive(data, perms_struct):
 
   rv = {}
   for k,v in data.items():
+    direct_match = False
     if perms_struct.get(k):
+      pv = perms_struct.get(k)
       rv[k] = permissions_apply_additive(
         v, 
-        perms_struct.get(k)
+        pv
       )
+      if type(pv) == int and pv > 0:
+        direct_match = True
+
     if perms_struct.get("@%s"%k):
       d = permissions_apply_additive(
         v, 
@@ -312,7 +317,7 @@ def permissions_apply_additive(data, perms_struct):
         rv[k].update(d)
       else:
         rv[k] = d
-    if perms_struct.get("*"):
+    if not direct_match and perms_struct.get("*"):
       d = permissions_apply_additive(
         v, 
         perms_struct.get("*")
@@ -511,7 +516,6 @@ def permissions_apply(data, perms_struct, path='', debug=False, ruleset=None):
   if not dict_valid(perms_struct):
     load_perms(perms_struct)
     perms_struct = perms_struct._nsp_perms_struct
-
   rv = permissions_apply_additive(data, perms_struct)
 
   if debug:
@@ -545,6 +549,7 @@ def permissions_apply_to_serialized_model(smodel, perms_struct, data=None, rules
   namespace_str = obj_to_namespace(inst)
   namespace = namespace_str.split(".")
   structure = d = {}
+
 
   if hasattr(inst, "nsp_ruleset"):
     ruleset.update(inst.nsp_ruleset)

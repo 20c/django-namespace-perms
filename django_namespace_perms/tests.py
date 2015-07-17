@@ -64,6 +64,11 @@ class NSPTestCase(SimpleTestCase):
 
     "h" : constants.PERM_READ,
 
+    "l.o" : constants.PERM_READ,
+    "l.o.*.n.*.p.p" : constants.PERM_READ,
+    "l.o.1" : constants.PERM_READ | constants.PERM_WRITE,
+    "l.o.2" : constants.PERM_READ | constants.PERM_WRITE,
+
     "x" : constants.PERM_READ,
     "x.c" : constants.PERM_READ,
     "x.*.z" : constants.PERM_READ,
@@ -256,6 +261,19 @@ class NSPTestCase(SimpleTestCase):
           {"a" : 1, "b" : "should be here" },
           {"a" : 2, "b" : "should be gone" }
         ]
+      },
+      "l": {
+        "o": {
+          "1" : {
+            "n" : {
+              "1": {
+                "p" : [ "should be here" ],
+                "a" : "should be here",
+                "b" : "should be here"
+              }
+            }
+          }
+        }
       }
     }
 
@@ -275,7 +293,21 @@ class NSPTestCase(SimpleTestCase):
       "h" : {
         "a" : [data["h"]["a"][0]],
         "b" : [data["h"]["b"][0]]
+      },
+      "l": {
+        "o": {
+          "1" : {
+            "n" : {
+              "1": {
+                "p" : [ "should be here" ],
+                "a" : "should be here",
+                "b" : "should be here"
+              }
+            }
+          }
+        }
       }
+ 
     }
 
     def namespace_builder(**kwargs):
@@ -284,12 +316,16 @@ class NSPTestCase(SimpleTestCase):
     def namespace_builder_absolute(**kwargs):
       return "g.a.%s" % kwargs.get("a")
 
+    def namespace_builder_complex(**kwargs):
+      return "p"
+
     ruleset = {
       "require": {
         "g.c.1" : 0x01,
         "g.c.2" : 0x01,
         "g.c.3" : 0x01,
-        "h.*.2" : 0x01
+        "h.*.2" : 0x01,
+        "l.o.1.n.p.p" : 0x01
       },
       "list-handlers" : {
         "f" : {
@@ -304,12 +340,16 @@ class NSPTestCase(SimpleTestCase):
         },
         "h.*" : {
           "namespace" : namespace_builder
+        },
+        "l.o.1.n.1.p" : {
+          "namespace" : namespace_builder_complex
         }
       }
     }
 
     perms_struct = util.perms_structure(self.perms)
     result = util.permissions_apply(data, perms_struct, debug=False, ruleset=ruleset)
+
     self.assertEqual(expected, result)
     
 
