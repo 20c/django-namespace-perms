@@ -46,12 +46,15 @@ class BasePermission(permissions.BasePermission):
 
 class PermissionedModelSerializer(serializers.ModelSerializer):
 
+  def has_create_perms(self, user, validated_data):
+      return has_perms(user, self.nsp_namespace_create(validated_data), PERM_WRITE)
+
   def create(self, validated_data):
     if hasattr(self, "nsp_namespace_create"):
       user = self.context.get("request").user
       if not user:
         raise PermissionDenied("User not set in serializer context")
-      if has_perms(user, self.nsp_namespace_create(validated_data), PERM_WRITE):
+      if self.has_create_perms(user, validated_data):
         return serializers.ModelSerializer.create(self, validated_data)
       else:
         raise PermissionDenied("User does not have write permissions to '%s'" % self.nsp_namespace_create(validated_data))
