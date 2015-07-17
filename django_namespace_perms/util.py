@@ -295,7 +295,7 @@ def permissions_apply_additive(data, perms_struct):
   
   if not dict_valid(perms_struct) or not dict_valid(data):
     return data
-
+  
   rv = {}
   for k,v in data.items():
     direct_match = False
@@ -305,7 +305,7 @@ def permissions_apply_additive(data, perms_struct):
         v, 
         pv
       )
-      if type(pv) == int and pv > 0:
+      if type(pv) in (int,long) and pv > 0:
         direct_match = True
 
     if perms_struct.get("@%s"%k):
