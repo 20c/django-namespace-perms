@@ -214,9 +214,7 @@ def has_perms(user, namespace, level, ambiguous=False, explicit=False):
     else:
       permstruct = perms
 
-  if explicit:
-    return get_perms(permstruct, namespace.split("."), explicit=True).check(level)
-  return get_perms(permstruct, namespace.split(".")).check(level)
+  return get_perms(permstruct, namespace.split("."), explicit=explicit).check(level)
 
 
 #############################################################################
