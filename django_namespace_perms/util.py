@@ -172,7 +172,6 @@ def obj_to_namespace(obj):
   return namespace.lower()
 
 
-
 #############################################################################
 
 def has_perms(user, namespace, level, ambiguous=False, explicit=False):
@@ -198,8 +197,12 @@ def has_perms(user, namespace, level, ambiguous=False, explicit=False):
   """
   
   if type(namespace) not in [str, unicode]:
-    if hasattr(namespace, "nsp_require_explicit"):
-      explicit = namespace.nsp_require_explicit
+    
+    if level == constants.PERM_READ and hasattr(namespace, "nsp_require_explicit_read"):
+      explicit = namespace.nsp_require_explicit_read
+    elif level == constants.PERM_WRITE and hasattr(namespace, "nsp_required_explicit_write"):
+      explicit = namespace.nsp_require_explicit_write
+
     namespace = obj_to_namespace(namespace)
 
   if type(user) != dict:
