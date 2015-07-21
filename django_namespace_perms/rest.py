@@ -42,7 +42,12 @@ class BasePermission(permissions.BasePermission):
     if request.method in permissions.SAFE_METHODS:
       return has_perms(request.user, obj, PERM_READ)
     else:
-      return has_perms(request.user, obj, PERM_WRITE)
+      func_name = "nsp_has_perms_%s" % request.method
+      if hasattr(obj, func_name):
+        func = getattr(obj, func_name)
+        return func(request.user, request)
+      else:
+        return has_perms(request.user, obj, PERM_WRITE)
 
 class PermissionedModelSerializer(serializers.ModelSerializer):
 
