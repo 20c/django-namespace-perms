@@ -173,6 +173,7 @@ out to all the children under it, however sometimes this is too loose and you ma
 to certain children. 
 
 In order to do this you need to require explicit permissions for a model (continuing from example above)
+    
     class Child(object):
       ...
       
