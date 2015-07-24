@@ -272,6 +272,7 @@ define a list-handler
 
     from django_namespace_perms.constants import PERM_READ, PERM_WRITE
     from django_namespace_perms.models import GroupPermission, UserPermission
+    from django_namespace_perms.util import obj_to_namespace
     from django.contrib.auth.models import User, Group
 
     # adding a new group permission to group with id=1
@@ -284,9 +285,9 @@ define a list-handler
     perm = UserPermission(user=user, namespace="a.b.c", permissions=PERM_WRITE)
     perm.save()
 
-    # note that you may pass models or object instances as the namespace argument
-    perms = UserPermission(user=user, namespace=SomeModel, permission=PERM_READ)
-    perms = UserPermission(user=user, namespace=SomeModel.objects.get(id=1), permission=PERM_WRITE)
+    # use obj_to_namespace to quickly permission out models or instances
+    perms = UserPermission(user=user, namespace=obj_to_namespace(SomeModel), permission=PERM_READ)
+    perms = UserPermission(user=user, namespace=obj_to_namespace(SomeModel.objects.get(id=1)), permission=PERM_WRITE)
 
 
 ## discover permission namespaces (which then can be granted/revoked in the admin ui)
