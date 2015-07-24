@@ -53,7 +53,7 @@ Edit your settings.py and add
 
     AUTHENTICATION_BACKENDS = ("django_namespace_perms.auth.backends.NSPBackend",)
 
-## Integrate into django rest framework
+## Supports Django REST Framework
 
 Edit your settings.py and add
 
@@ -113,6 +113,10 @@ Permissions dont need to target application and model names, they can be complet
 
     nsp.has_perms(user, [User, "username"], PERM_READ)
 
+    #check if user has read perms to a model instance
+
+    nsp.has_perms(user, user, PERM_READ)
+
     #check if user has read perms to arbitrary namespace
 
     nsp.has_perms(user, "a.b.c", PERM_READ)
@@ -122,6 +126,72 @@ Permissions dont need to target application and model names, they can be complet
     perms = nsp.load_perms(user)
     nsp.has_perms(perms, User, PERM_WRITE)
     nsp.has_perms(perms, SomeModel, PERM_READ)
+
+## Building namespaces
+
+By default the namespace for a model will be returned as 
+
+    app_name.model_name
+
+and the namespace for a model instance will be returned as
+
+    app_name.model_name.<id>
+
+Which is all you need in most cases, but sometimes it makes sense to customize your namespaces. For example when 
+you wish to nest permissions
+
+    class Parent(object):
+      
+      # we override the model instance's namespace
+      # so it returns 'parent.<id>'
+
+      @property
+      def nsp_namespace(self):
+        return "parent.%s" % self.id
+    
+    class Child(object):
+      
+      parent = models.ForeignKey(Parent)
+      
+      # we want child perms to be nested under it's parent
+      # so again we override the namespace and prepend
+      # the parent's namespace to it
+      #
+      # it returns 'parent.<parent_id>.child.<child_id>
+
+      @property
+      def nsp_namespace(self):
+        return "%s.child.%s" % (self.parent.nsp_namespace, self.id)
+          
+Doing this can be really usefully if you want to quickly permission out sets of objects. So a user with
+permissions to parent.1 would have also permissions to all child objects under that parent.
+
+## Requiring explicit permissions
+
+It's nice to be able to grant a user permissions to "parent" and automatically cascade those permissions
+out to all the children under it, however sometimes this is too loose and you may want to restrict permissions
+to certain children. 
+
+In order to do this you need to require explicit permissions for a model (continuing from example above)
+    class Child(object):
+      ...
+      
+      # we require the user to have explicit perms to an
+      # instance of the model for him to be allowed to write
+      # to it
+
+      @property
+      def nsp_require_explicit_write(self):
+         return True
+
+This means that in order for the user to be able to write to an instance of Child he needs to have a permission
+rule explicitly targeting either
+
+    parent.<parent_id>.child.<child_id>  -> PERM_WRITE
+
+or
+
+    parent.*.child.*   -> PERM_WRITE
 
 ## Apply permissions to dict data
 
@@ -162,6 +232,41 @@ After permissions apply the contents of data will be
       "b" : "This should be here"
     }
 
+### Applying permissions to lists
+
+If you have a dataset that looks like this
+
+    data = {
+      "a" : [
+        { "id" : 1, "name" : "should be here" },
+        { "id" : 2, "name" : "should be gone" }
+      ]
+    }
+
+you can still apply permissions to it, but it's a bit trickier. In order to do so you will need to
+define a list-handler
+
+    # we want the list handler function to return the id of the row
+    # since this is what we want to append to the namspace
+    # 
+    # so each row in the list will be checked against the namespace
+    # a.<row.id>
+
+    def handler(**kwargs):
+      return kwargs.get("id")
+
+    ruleset = {
+      "list-handlers" : {
+        # namespace a
+        "a" : {
+          namespace : handler
+        }
+      }
+    }
+
+    data = permissions_apply(data, perms_structure(user), ruleset=ruleset)
+
+
 ## Setting permissions via API
 
     from django_namespace_perms.constants import PERM_READ, PERM_WRITE
@@ -177,6 +282,11 @@ After permissions apply the contents of data will be
     user = User.objects.get(id=1)
     perm = UserPermission(user=user, namespace="a.b.c", permissions=PERM_WRITE)
     perm.save()
+
+    # note that you may pass models or object instances as the namespace argument
+    perms = UserPermission(user=user, namespace=SomeModel, permission=PERM_READ)
+    perms = UserPermission(user=user, namespace=SomeModel.objects.get(id=1), permission=PERM_WRITE)
+
 
 ## discover permission namespaces (which then can be granted/revoked in the admin ui)
 
