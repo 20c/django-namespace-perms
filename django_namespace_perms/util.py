@@ -106,6 +106,9 @@ def load_perms(user):
     perms = []
 
   permdict = {}
+  if hasattr(user, "nsp_manual"):
+    for ns,p in user.nsp_manual.items():
+      permdict[ns] = p
   for perm in group_perms:
     permdict[perm.namespace] = perm.permissions
   for perm in perms:
@@ -195,6 +198,7 @@ def has_perms(user, namespace, level, ambiguous=False, explicit=False):
   explicit <bool=False> - if true, explicit permissions are required to the
   full path provided in namespace, partial namespace matches will be ignored.
   """
+
   
   if type(namespace) not in [str, unicode]:
     
