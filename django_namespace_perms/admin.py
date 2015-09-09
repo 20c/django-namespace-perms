@@ -59,24 +59,50 @@ class GroupPermissionAdmin(admin.ModelAdmin):
 class GroupPermissionInline(admin.TabularInline):
   model = GroupPermission
   form = ManualGroupPermissionInline
+  readonly_fields = ["namespace"]
+
+  def has_add_permission(self, request):
+    return False
+
+class GroupPermissionInlineAdd(admin.TabularInline):
+  model = GroupPermission
+  form = ManualGroupPermissionInline
+  verbose_name_plural = "Add group permissions"
+
+  def has_change_permission(self, request, obj=None):
+    return False
+
 
 class UserPermissionInline(admin.TabularInline):
   model = UserPermission
   form = ManualUserPermissionInline
+  readonly_fields = ["namespace"]
+
+  def has_add_permission(self, request):
+    return False
+
+class UserPermissionInlineAdd(admin.TabularInline):
+  model = UserPermission
+  form = ManualUserPermissionInline
+  verbose_name_plural = "Add user permissions"
+
+  def has_change_permission(self, request, obj=None):
+    return False
+
 
 class GroupAdmin(admin.ModelAdmin):
   list_display = ('name',)
   search_fields = ('name',)
   #remove default permissions form
   exclude = ('permissions',)
-  inlines = (GroupPermissionInline,)
+  inlines = (GroupPermissionInline, GroupPermissionInlineAdd)
   actions = [
     assign_group_to_all_users,
     revoke_group_from_all_users
   ]
 
 class UserAdmin(DjangoUserAdmin):
-  inlines = (UserPermissionInline,)
+  inlines = (UserPermissionInline, UserPermissionInlineAdd)
   add_fieldsets = (
     (None, {
         'classes' : ('wide',),

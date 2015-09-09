@@ -36,13 +36,18 @@ Note that this will remove editing of django out-of-the-box permissions from the
 
 If you wish to simply append django namespace permissions forms the the user and group admin editors you can do so by adding UserGroupInline and UserPermissionInline to the existing UserAdmin admin model
 
-    from django_namespace_perms.admin import UserGroupInline, UserPermissionInline
+    from django_namespace_perms.admin import (
+      UserGroupInline, 
+      UserGroupInlineAdd, 
+      UserPermissionInline,
+      UserPermissionInlineAdd
+    )
     from django.contrib.auth.admin import UserAdmin
     from django.contrib.auth.models import User
 
     class UserAdmin(UserAdmin):
       ...
-      inlines = (UserPermissionInline)
+      inlines = (UserPermissionInline, UserPermissionInlineAdd)
       ...
     
     admin.site.register(User, UserAdmin)
