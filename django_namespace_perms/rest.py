@@ -79,12 +79,17 @@ class PermissionedModelSerializer(serializers.ModelSerializer):
 
     if not user and req:
       user = req.user
+    
 
     if user:
       
       # superusers can see everything
       if user.is_superuser:
         return r
+
+      if getattr(instance, "nsp_require_explicit_read", False):
+        if not has_perms(user, instance, 0x01):
+          return None 
 
       r = permissions_apply_to_serialized_model(
         instance,

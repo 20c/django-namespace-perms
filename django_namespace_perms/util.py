@@ -571,6 +571,7 @@ def permissions_apply_to_serialized_model(smodel, perms_struct, data=None, rules
     else:
       d[str(k)] = data
     i += 1
+
   
   # prepare ruleset
   if ruleset:
