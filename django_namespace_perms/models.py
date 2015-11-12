@@ -76,8 +76,12 @@ class GroupPermission(models.Model):
   def __unicode__(self):
     return "%s: %s" % (self.group.name, self.namespace)
 
-  def xbahn_replicate_relations(self):
-    return {"group" : ("id", "name")}
+  def serialize_relations(self, data={}):
+    data["group"] = {
+      "id" : self.group.id,
+      "name" : self.group.name
+    }
+
 
 #############################################################################
 
@@ -102,8 +106,11 @@ class UserGroup(models.Model):
     db_table = u'nsp_user_group'
     unique_together = ('user', 'group')
 
-  def xbahn_replicate_relations(self):
-    return {"group" : ("id", "name")}
+  def serialize_relations(self, data={}):
+    data["group"] = {
+      "id" : self.group.id,
+      "name" : self.group.name
+    }
 
   def __unicode__(self):
     return "%s: %s" % (self.user.username, self.group.name)
