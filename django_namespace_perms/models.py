@@ -115,12 +115,4 @@ class UserGroup(models.Model):
   def __unicode__(self):
     return "%s: %s" % (self.user.username, self.group.name)
 
-#############################################################################
 
-if hasattr(settings, 'XBAHN') and settings.XBAHN.get("replication") and "namespace_perms" in settings.XBAHN["replication"].get("replicate",[]):
-    import twentyc.xbahn.django.replication as replication
-    replication.replicate(
-      UserPermission,
-      GroupPermission,
-      UserGroup
-    )
