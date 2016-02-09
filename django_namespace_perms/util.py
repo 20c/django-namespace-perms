@@ -4,6 +4,7 @@ import json
 import inspect
 
 from django.db.models.query import QuerySet
+from django.conf import settings
 
 
 APP_NAMESPACES = [
@@ -11,6 +12,42 @@ APP_NAMESPACES = [
 
 NAMESPACES = [
 ]
+
+WRITE_OPS = [
+  "update",
+  "delete",
+  "create"
+]
+
+#############################################################################
+
+def get_permission_flag(op):
+  """
+  Returns the approporiate permission flag for the operation passed
+  in op
+
+  valid operation values:
+    - "read"
+    - "create"
+    - "update"
+    - "delete"
+  """
+
+  mode = getattr(settings, "NSP_MODE", "rw")
+
+  if op in WRITE_OPS:
+    if mode == "crud":
+      if op == "create":
+        return constants.PERM_CREATE
+      elif op == "update":
+        return constants.PERM_UPDATE
+      elif op == "delete":
+        return constants.PERM_DELETE
+    else:
+      return constants.PERM_WRITE
+  else:
+    return constants.PERM_READ
+
 
 #############################################################################
 

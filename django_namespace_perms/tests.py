@@ -1,5 +1,6 @@
 from django.test import SimpleTestCase
 from django.db import models
+from django.conf import settings
 
 from django_namespace_perms import util, constants
 import json
@@ -78,6 +79,20 @@ class NSPTestCase(SimpleTestCase):
 
   def setUp(self):
     pass
+
+  def test_get_permission_flag_rw_mode(self):
+    settings.NSP_MODE = "rw"
+    self.assertEqual(util.get_permission_flag("read"), constants.PERM_READ)
+    self.assertEqual(util.get_permission_flag("create"), constants.PERM_WRITE)
+    self.assertEqual(util.get_permission_flag("update"), constants.PERM_WRITE)
+    self.assertEqual(util.get_permission_flag("delete"), constants.PERM_WRITE)
+
+  def test_get_permission_flag_crud_mode(self):
+    settings.NSP_MODE = "crud"
+    self.assertEqual(util.get_permission_flag("read"), constants.PERM_READ)
+    self.assertEqual(util.get_permission_flag("create"), constants.PERM_CREATE)
+    self.assertEqual(util.get_permission_flag("update"), constants.PERM_UPDATE)
+    self.assertEqual(util.get_permission_flag("delete"), constants.PERM_DELETE)
 
   def test_namespace_override(self):
     obj = ModelTestA()
@@ -353,7 +368,7 @@ class NSPTestCase(SimpleTestCase):
     self.assertEqual(expected, result)
     
 
-  def _test_performance(self):
+  def test_performance(self):
     
     def mkdataset(depth=3):
       depth = depth - 1
