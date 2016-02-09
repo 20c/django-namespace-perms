@@ -84,14 +84,18 @@ class NSPTestCase(SimpleTestCase):
     settings.NSP_MODE = "rw"
     self.assertEqual(util.get_permission_flag("read"), constants.PERM_READ)
     self.assertEqual(util.get_permission_flag("create"), constants.PERM_WRITE)
+    self.assertEqual(util.get_permission_flag("add"), constants.PERM_WRITE)
     self.assertEqual(util.get_permission_flag("update"), constants.PERM_WRITE)
+    self.assertEqual(util.get_permission_flag("change"), constants.PERM_WRITE)
     self.assertEqual(util.get_permission_flag("delete"), constants.PERM_WRITE)
 
   def test_get_permission_flag_crud_mode(self):
     settings.NSP_MODE = "crud"
     self.assertEqual(util.get_permission_flag("read"), constants.PERM_READ)
     self.assertEqual(util.get_permission_flag("create"), constants.PERM_CREATE)
+    self.assertEqual(util.get_permission_flag("add"), constants.PERM_CREATE)
     self.assertEqual(util.get_permission_flag("update"), constants.PERM_UPDATE)
+    self.assertEqual(util.get_permission_flag("change"), constants.PERM_UPDATE)
     self.assertEqual(util.get_permission_flag("delete"), constants.PERM_DELETE)
 
   def test_namespace_override(self):

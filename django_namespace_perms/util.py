@@ -15,8 +15,10 @@ NAMESPACES = [
 
 WRITE_OPS = [
   "update",
+  "change",
   "delete",
-  "create"
+  "create",
+  "add"
 ]
 
 #############################################################################
@@ -27,9 +29,9 @@ def get_permission_flag(op):
   in op
 
   valid operation values:
-    - "read"
-    - "create"
-    - "update"
+    - "read" or "view"
+    - "create" or "add"
+    - "update" or "change"
     - "delete"
   """
 
@@ -37,9 +39,9 @@ def get_permission_flag(op):
 
   if op in WRITE_OPS:
     if mode == "crud":
-      if op == "create":
+      if op == "create" or op == "add":
         return constants.PERM_CREATE
-      elif op == "update":
+      elif op == "update" or op == "change":
         return constants.PERM_UPDATE
       elif op == "delete":
         return constants.PERM_DELETE
