@@ -2,6 +2,7 @@ from rest_framework import permissions, serializers
 
 from django_namespace_perms.util import (
   has_perms, 
+  get_permission_flag,
   obj_to_namespace,
   permissions_apply_to_serialized_model
 )
@@ -13,6 +14,24 @@ from exceptions import PermissionDenied
 
 log = logging.getLogger(__name__)
 
+def method_to_permcode(method):
+  """
+  return the django permcode for the specified method
+
+  eg. "POST" => "add"
+  """
+  method = method.upper()
+  if method == "POST":
+    return "add"
+  if method == "GET":
+    return "view"
+  if method == "PUT" or method == "UPDATE":
+    return "change"
+  if method == "DELETE":
+    return "delete"
+
+  raise ValueError("Could not derive perm code from method %s" % method)
+
 class BasePermission(permissions.BasePermission):
 
   def debug(self, msg):
@@ -20,13 +39,6 @@ class BasePermission(permissions.BasePermission):
     log.debug(msg)
   
   def has_permission(self, request, view):
-    """
-    self.debug("Check permission: %s, %s" % (request.method, view.model))
-    if request.method == "POST":
-      return has_perms(request.user, view.model, PERM_WRITE)
-    else:
-      return True
-    """
     # since instance of object does not exist yet and we have no access to the
     # serializer data we need to handle POST permission checks during
     # PermissionedModelSerializer.create - always return true here.
@@ -47,12 +59,16 @@ class BasePermission(permissions.BasePermission):
         func = getattr(obj, func_name)
         return func(request.user, request)
       else:
-        return has_perms(request.user, obj, PERM_WRITE)
+        return has_perms(
+          request.user, 
+          obj, 
+          get_permission_flag(method_to_perm_code(request.method))
+        )
 
 class PermissionedModelSerializer(serializers.ModelSerializer):
 
   def has_create_perms(self, user, validated_data):
-      return has_perms(user, self.nsp_namespace_create(validated_data), PERM_WRITE)
+      return has_perms(user, self.nsp_namespace_create(validated_data), get_permission_flag("create"))
 
   def create(self, validated_data):
     if hasattr(self, "nsp_namespace_create"):

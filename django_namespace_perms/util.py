@@ -21,6 +21,8 @@ WRITE_OPS = [
   "add"
 ]
 
+STR_TYPES = [str, unicode]
+
 #############################################################################
 
 def get_permission_flag(op):
@@ -165,12 +167,9 @@ def permcode_to_namespace(perm):
   a = re.match("(add|delete|change|view)_(.+)", perm_code)
 
   if a:
-    if a.group(1) == "view":
-      return ("%s.%s.%s" % (label, a.group(2), a.group(1)), constants.PERM_READ)
-    else:
-      return ("%s.%s.%s" % (label, a.group(2), a.group(1)), constants.PERM_WRITE)
+    return ("%s.%s.%s" % (label, a.group(2), a.group(1)), get_permission_flag(a.group(1)))
 
-  return (label, constants.PERM_READ)
+  return (label, get_permission_flag("read"))
 
 
 
@@ -232,14 +231,17 @@ def has_perms(user, namespace, level, ambiguous=False, explicit=False):
   string itself, the instance of a django model or a list holding the instance of a
   django model at index 0 and a model field name at index 1
 
-  level <int> - permission level to check
+  level <int|str> - permission level to check, if passed as string any value that
+  is valid to be passed to get_permission_flag is ok
 
   explicit <bool=False> - if true, explicit permissions are required to the
   full path provided in namespace, partial namespace matches will be ignored.
   """
 
-  
-  if type(namespace) not in [str, unicode]:
+  if type(level) in STR_TYPES:
+    level = get_permission_flag(level)
+
+  if type(namespace) not in STR_TYPES:
     
     if level == constants.PERM_READ and hasattr(namespace, "nsp_require_explicit_read"):
       explicit = namespace.nsp_require_explicit_read
