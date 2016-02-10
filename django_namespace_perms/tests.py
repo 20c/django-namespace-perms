@@ -77,8 +77,16 @@ class NSPTestCase(SimpleTestCase):
     "x.y.z.d" : constants.PERM_READ
   }
 
+  perms_crud = {
+    "r.a" : constants.PERM_READ,
+    "r.a.1" : constants.PERM_UPDATE,
+    "r.a.2" : constants.PERM_CREATE,
+    "r.a.3" : constants.PERM_DELETE,
+    "r.a.4" : constants.PERM_DENY
+  }
+
   def setUp(self):
-    pass
+    settings.NSP_MODE = "rw"
 
   def test_get_permission_flag_rw_mode(self):
     settings.NSP_MODE = "rw"
@@ -145,6 +153,31 @@ class NSPTestCase(SimpleTestCase):
     self.assertEqual("app.model.change", label)
     self.assertEqual(flag, constants.PERM_WRITE)
 
+  def test_permcode_to_namespace_view_crud(self):
+    settings.NSP_MODE = "crud"
+    label, flag = util.permcode_to_namespace("app.view_model")
+    self.assertEqual("app.model.view", label)
+    self.assertEqual(flag, constants.PERM_READ)
+
+  def test_permcode_to_namespace_add_crud(self):
+    settings.NSP_MODE = "crud"
+    label, flag = util.permcode_to_namespace("app.add_model")
+    self.assertEqual("app.model.add", label)
+    self.assertEqual(flag, constants.PERM_CREATE)
+
+  def test_permcode_to_namespace_delete_crud(self):
+    settings.NSP_MODE = "crud"
+    label, flag = util.permcode_to_namespace("app.delete_model")
+    self.assertEqual("app.model.delete", label)
+    self.assertEqual(flag, constants.PERM_DELETE)
+
+  def test_permcode_to_namespace_change_crud(self):
+    settings.NSP_MODE = "crud"
+    label, flag = util.permcode_to_namespace("app.change_model")
+    self.assertEqual("app.model.change", label)
+    self.assertEqual(flag, constants.PERM_UPDATE)
+
+
   def test_has_perms(self):
     self.assertEqual(util.has_perms(self.perms, "a.b", constants.PERM_READ), True)
     self.assertEqual(util.has_perms(self.perms, "a.b", constants.PERM_WRITE), False)
@@ -161,6 +194,27 @@ class NSPTestCase(SimpleTestCase):
     self.assertEqual(util.has_perms(self.perms, "a.b.d", "write"), False)
  
 
+  def test_has_perms_crud(self):
+    settings.NSP_MODE = "crud"
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a", "read"), True)
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a", "update"), False)
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a", "create"), False)
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a", "delete"), False)
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a.1", "update"), True)
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a.1", "create"), False)
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a.1", "delete"), False)
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a.2", "update"), False)
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a.2", "create"), True)
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a.2", "delete"), False)
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a.3", "update"), False)
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a.3", "create"), False)
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a.3", "delete"), True)
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a.4", "read"), False)
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a.4", "update"), False)
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a.4", "create"), False)
+    self.assertEqual(util.has_perms(self.perms_crud, "r.a.4", "delete"), False)
+    settings.NSP_MODE = "rw"
+ 
 
   def test_has_perms_wildcard(self):
     self.assertEqual(util.has_perms(self.perms, "b.*", constants.PERM_READ), True)
