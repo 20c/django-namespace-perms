@@ -118,6 +118,7 @@ class GroupPermissionInlineAdd(admin.TabularInline):
 class UserPermissionInline(admin.TabularInline):
   model = UserPermission
   form = ManualUserPermissionInline
+  fields = ("namespace", "permissions")
   readonly_fields = ["namespace"]
 
   def has_add_permission(self, request):
