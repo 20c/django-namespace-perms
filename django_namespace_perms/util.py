@@ -25,6 +25,11 @@ STR_TYPES = [str, unicode]
 
 #############################################################################
 
+def nsp_mode():
+  return getattr(settings, "NSP_MODE", "rw")
+
+#############################################################################
+
 def get_permission_flag(op):
   """
   Returns the approporiate permission flag for the operation passed

@@ -49,26 +49,20 @@ def managed_perms(model):
   post_save.connect(managed_perms_create, sender=model)
   pre_delete.connect(managed_perms_remove, sender=model)
 
-
-
-
 #############################################################################
 
-#class Group(models.Model):
-#  name = models.CharField(max_length=255, unique=True)
-#
-#  class Meta:
-#    db_table = u'nsp_group'
-#
-#  def __unicode__(self):
-#    return self.name
+def perm_choices():
+  if getattr(settings, "NSP_MODE", "rw") == "crud":
+    return PERM_CHOICES_CRUD
+  else:
+    return PERM_CHOICES
 
 #############################################################################
 
 class GroupPermission(models.Model):
   group = models.ForeignKey(Group, blank=False)
   namespace = models.CharField(max_length=255, blank=False)
-  permissions = models.IntegerField(choices=PERM_CHOICES, blank=False, default=PERM_READ)
+  permissions = models.IntegerField(blank=False, default=PERM_READ)
 
   class Meta:
     db_table = u'nsp_group_permission'
@@ -88,7 +82,7 @@ class GroupPermission(models.Model):
 class UserPermission(models.Model):
   user = models.ForeignKey(settings.AUTH_USER_MODEL, blank=False)
   namespace = models.CharField(max_length=255, blank=False)
-  permissions = models.IntegerField(choices=PERM_CHOICES, blank=False, default=PERM_READ)
+  permissions = models.IntegerField(blank=False, default=PERM_READ)
 
   class Meta:
     db_table = u'nsp_user_permission'

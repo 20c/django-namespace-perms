@@ -4,11 +4,13 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.contrib.auth.models import User, Group 
 
-from django_namespace_perms.models import GroupPermission, UserPermission
+from django_namespace_perms.models import perm_choices, GroupPermission, UserPermission
 from django_namespace_perms.constants import *
-from django_namespace_perms.util import NAMESPACES
+from django_namespace_perms.util import NAMESPACES, nsp_mode
 
 from django import forms
+from django.db import models
+from django.conf import settings
 
 import autocomplete_light
 
@@ -28,7 +30,31 @@ def revoke_group_from_all_users(modeladmin, request, queryset):
     group.user_set.remove(user)
 revoke_group_from_all_users.short_description = "Revoke selected groups from all users"
 
+class BitmaskSelectMultiple(forms.CheckboxSelectMultiple):
+  outer_html = '<div{id_attr}>{content}</div>'
+  inner_html = '<span style="margin-right:15px">{choice_value}{sub_widgets}</span>'
+  
+  def __init__(self, *args, **kwargs):
+    super(BitmaskSelectMultiple, self).__init__(*args, **kwargs)
+    self.renderer.outer_html = self.outer_html
+    self.renderer.inner_html = self.inner_html
 
+  def render(self, name, value, attrs=None):
+    values = []
+    if type(value) == list:
+      i = 0
+      for v in value:
+        i = i | int(v)
+      value = i
+    for p,lbl in perm_choices():
+      if value & p != 0:
+        values.append(p)
+    return super(BitmaskSelectMultiple, self).render(name, values, attrs=attrs)
+  def value_from_datadict(self, data, files, name):
+    i = 0
+    for p in data.getlist(name):
+      i = i | int(p)
+    return i
 
 # Register your models here.
 
@@ -36,22 +62,37 @@ class NamespaceAutocomplete(autocomplete_light.AutocompleteListBase):
   choices = [v for k,v in NAMESPACES]
 autocomplete_light.register(NamespaceAutocomplete);
 
-class ManualUserPermissionInline(autocomplete_light.ModelForm):
+class PermissionForm(forms.Form):
+  def clean_permissions(self):
+    perms = self.cleaned_data["permissions"]
+    if type(perms) == list:
+      i = 0
+      for p in perms:
+        i = i | int(p)
+      perms = i
+    return int(perms)
+
+
+class ManualUserPermissionInline(autocomplete_light.ModelForm, PermissionForm):
   class Meta:
     model = UserPermission
     widgets = {
-      'namespace' : autocomplete_light.TextWidget('NamespaceAutocomplete', attrs={"style":"width:500px"})
+      'namespace' : autocomplete_light.TextWidget('NamespaceAutocomplete', attrs={"style":"width:500px"}),
+      'permissions' : BitmaskSelectMultiple(choices=perm_choices())
     }
     fields = "__all__"
 
-class ManualGroupPermissionInline(autocomplete_light.ModelForm):
+
+
+
+class ManualGroupPermissionInline(autocomplete_light.ModelForm, PermissionForm):
   class Meta:
     model = GroupPermission
     widgets = {
-      'namespace' : autocomplete_light.TextWidget('NamespaceAutocomplete', attrs={"style":"width:500px"})
+      'namespace' : autocomplete_light.TextWidget('NamespaceAutocomplete', attrs={"style":"width:500px"}),
+      'permissions' : BitmaskSelectMultiple(choices=perm_choices())
     }
     fields = "__all__"
-
 
 class GroupPermissionAdmin(admin.ModelAdmin):
   list_display = ('group', 'namespace', 'permissions')
@@ -59,6 +100,7 @@ class GroupPermissionAdmin(admin.ModelAdmin):
 class GroupPermissionInline(admin.TabularInline):
   model = GroupPermission
   form = ManualGroupPermissionInline
+  fields = ("namespace", "permissions")
   readonly_fields = ["namespace"]
 
   def has_add_permission(self, request):
