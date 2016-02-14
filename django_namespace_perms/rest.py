@@ -62,7 +62,7 @@ class BasePermission(permissions.BasePermission):
         return has_perms(
           request.user, 
           obj, 
-          get_permission_flag(method_to_perm_code(request.method))
+          get_permission_flag(method_to_permcode(request.method))
         )
 
 class PermissionedModelSerializer(serializers.ModelSerializer):
