@@ -71,7 +71,7 @@ class PermissionFrame(object):
   def check(self, level):
     if self.value is None:
       return False
-    return (self.value & level) != 0
+    return (self.value & level) == level
 
 #############################################################################
 
