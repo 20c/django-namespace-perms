@@ -10,7 +10,6 @@ from django_namespace_perms.util import NAMESPACES, nsp_mode
 
 from django import forms
 from django.db import models
-from django.conf import settings
 
 import autocomplete_light
 
