@@ -15,15 +15,14 @@ PERM_DELETE = 0x08
 PERM_CRUD = PERM_CREATE | PERM_READ | PERM_UPDATE | PERM_DELETE
 
 PERM_CHOICES = [
-  (PERM_READ, "read"),
-  (PERM_WRITE, "write"),
-  (PERM_DENY, "deny"),
+    (PERM_READ, "read"),
+    (PERM_WRITE, "write"),
+    (PERM_DENY, "deny"),
 ]
 PERM_CHOICES_CRUD = [
-  (PERM_READ, "read"),
-  (PERM_UPDATE, "update"),
-  (PERM_CREATE, "create"),
-  (PERM_DELETE, "delete"),
-  (PERM_DENY, "deny")
+    (PERM_READ, "read"),
+    (PERM_UPDATE, "update"),
+    (PERM_CREATE, "create"),
+    (PERM_DELETE, "delete"),
+    (PERM_DENY, "deny")
 ]
-
