@@ -1,2 +1,1 @@
 django-autocomplete-light==2.2.3
-unittest2==0.8.0

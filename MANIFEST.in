@@ -1,4 +1,4 @@
-recursive-include django_namespace_perms/templates *
-recursive-include django_namespace_perms/templatetags *
-include config/requirements.txt
-include config/VERSION
+include LICENSE
+recursive-include facsimile *.txt
+recursive-include django-namespace-perms *.py
+include facsimile/VERSION

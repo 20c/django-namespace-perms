@@ -1,21 +1,11 @@
-from django.test import SimpleTestCase
 from django.db import models
 from django.conf import settings
+from django.test import TestCase
 
 from django_namespace_perms import util, constants
 import json
+import inspect
 
-###############################################################################
-"""
-Set TEST_RUNNER to this class in settings for fast testing (no db creation)
-"""
-
-from django.test.runner import DiscoverRunner
-class NoDbTestRunner(DiscoverRunner):
-  def setup_databases(self, **kwargs):
-    pass
-  def teardown_databases(self, old_config):
-    pass
 
 ###############################################################################
 
@@ -41,11 +31,11 @@ class ModelTestD(ModelTestC):
 ###############################################################################
 # Create your tests here.
 
-class NSPTestCase(SimpleTestCase):
+class NSPTestCase(TestCase):
 
   perms = {
-    "django_namespace_perms.modeltestb.1" : constants.PERM_WRITE,
-    "django_namespace_perms.modeltestb.2.allowedfield" : constants.PERM_READ,
+    "tests.modeltestb.1" : constants.PERM_WRITE,
+    "tests.modeltestb.2.allowedfield" : constants.PERM_READ,
     "a.b" : constants.PERM_READ,
     "a.b.c" : constants.PERM_READ | constants.PERM_WRITE,
     "a.b.d" : constants.PERM_DENY,
@@ -116,7 +106,7 @@ class NSPTestCase(SimpleTestCase):
     obj = ModelTestB()
     obj.id=1
     namespace = util.obj_to_namespace(obj)
-    self.assertEqual(namespace, "django_namespace_perms.modeltestb.1")
+    self.assertEqual(namespace, "tests.modeltestb.1")
 
   def test_namespace_classmethods(self):
     self.assertEqual(util.obj_to_namespace(ModelTestC), "test.django_namespace_perms")

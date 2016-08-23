@@ -1,27 +1,31 @@
-from setuptools import setup
 
-version = open('config/VERSION').read().strip()
-requirements = open('config/requirements.txt').read().split("\n")
+from setuptools import find_packages, setup
+
+
+version = open('facsimile/VERSION').read().strip()
+requirements = open('facsimile/requirements.txt').read().split("\n")
+test_requirements = open('facsimile/requirements-test.txt').read().split("\n")
+
 
 setup(
     name='django-namespace-perms',
     version=version,
-    author='Twentieth Century',
+    author='20C',
     author_email='code@20c.com',
-    description='granular permission system that allows permissioning for read / write operations all the way down to the field level. Also supports completely arbitrary / custom permission namespaces.',
+    description='granular permissions for django',
+    long_description='',
+    license='LICENSE.txt',
     classifiers=[
         'Development Status :: 4 - Beta',
-        'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
-        'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    packages=[
-      'django_namespace_perms', 
-      'django_namespace_perms.auth'
-    ],
-    url = 'https://github.com/20c/django-namespace-perms',
-    download_url = 'https://github.com/20c/django-namespace-perms/%s'%version,
+    packages = find_packages(),
     include_package_data=True,
+    url='https://github.com/20c/django-namespace-perms',
+    download_url='https://github.com/20c/django-namespace-perms/%s' % version,
+
     install_requires=requirements,
-    zip_safe=False
+    test_requires=test_requirements,
+
+    zip_safe=True
 )
