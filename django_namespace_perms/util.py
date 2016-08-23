@@ -139,7 +139,6 @@ def load_perms(user):
         return user._nsp_perms
 
     from django_namespace_perms.models import UserPermission, GroupPermission
-    from django.conf import settings
     from django.core.exceptions import ObjectDoesNotExist
     from django.contrib.auth.models import Group
 
