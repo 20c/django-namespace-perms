@@ -501,10 +501,13 @@ def permissions_apply_ruleset_require_explicit(data, path, perm, perms_struct, f
 
 #############################################################################
 
-def permissions_apply_list_handler(data, path, handler, perms_struct, ruleset={}, full_path=None, container=None):
+def permissions_apply_list_handler(data, path, handler, perms_struct, ruleset=None, full_path=None, container=None):
 
     d = data
     a = 0
+
+    if ruleset is None:
+        ruleset = {}
 
     if type(path) is not list:
         keys = path.split(".")
@@ -607,7 +610,10 @@ def permissions_apply(data, perms_struct, path='', debug=False, ruleset=None):
 #############################################################################
 
 
-def permissions_apply_to_serialized_model(smodel, perms_struct, data=None, ruleset={}):
+def permissions_apply_to_serialized_model(smodel, perms_struct, data=None, ruleset=None):
+    if ruleset is None:
+        ruleset = {}
+
     if hasattr(smodel, "instance"):
         inst = smodel.instance
     else:
