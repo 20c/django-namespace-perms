@@ -74,11 +74,14 @@ class GroupPermission(models.Model):
     def __unicode__(self):
         return "%s: %s" % (self.group.name, self.namespace)
 
-    def serialize_relations(self, data={}):
+    def serialize_relations(self, data=None):
+        if not data:
+            data = {}
         data["group"] = {
             "id": self.group.id,
             "name": self.group.name
         }
+        return data
 
 
 #############################################################################
