@@ -1,7 +1,7 @@
 # django-namespace-perms
 
 [![PyPI](https://img.shields.io/pypi/v/django-namespace-perms.svg?maxAge=3600)](https://pypi.python.org/pypi/django-namespace-perms)
-[![Travis CI](https://img.shields.io/travis/20c/django-namespace-perms.svg?maxAge=3600)](https://travis-ci.org/20c/django-namespace-perms)
+[![Travis CI](https://img.shields.io/travis/20c/django-namespace-perms.svg?maxAge=60)](https://travis-ci.org/20c/django-namespace-perms)
 [![Code Health](https://landscape.io/github/20c/django-namespace-perms/master/landscape.svg?style=flat)](https://landscape.io/github/20c/django-namespace-perms/master)
 [![Codecov](https://img.shields.io/codecov/c/github/20c/django-namespace-perms/master.svg?maxAge=3600)](https://codecov.io/github/20c/django-namespace-perms)
 [![Requires.io](https://img.shields.io/requires/github/20c/django-namespace-perms.svg?maxAge=3600)](https://requires.io/github/20c/django-namespace-perms/requirements)
