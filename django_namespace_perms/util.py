@@ -189,8 +189,6 @@ def permcode_to_namespace(perm):
 #############################################################################
 
 def obj_to_namespace(obj):
-    namespace = str(obj)
-
     if inspect.isclass(obj):
         # class passed check existance of possible class methods
         if hasattr(obj, "nsp_namespace_create"):
@@ -219,6 +217,8 @@ def obj_to_namespace(obj):
             obj._meta.app_label,
             obj._meta.model_name
         )
+    else:
+        namespace = str(obj)
     if hasattr(obj, "id"):
         namespace = "%s.%s" % (namespace, obj.id)
 
