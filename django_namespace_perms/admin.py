@@ -11,8 +11,6 @@ from django_namespace_perms.util import NAMESPACES, nsp_mode
 from django import forms
 from django.db import models
 
-import autocomplete_light
-
 
 def assign_group_to_all_users(modeladmin, request, queryset):
     User = get_user_model()
@@ -38,8 +36,6 @@ class BitmaskSelectMultiple(forms.CheckboxSelectMultiple):
     # django < 1.11
     outer_html = '<div{id_attr}>{content}</div>'
     inner_html = '<span style="margin-right:15px">{choice_value}{sub_widgets}</span>'
-    # django >= 1.11
-    template_name = 'django/forms/widgets/bitmask-choice.html'
 
     def __init__(self, *args, **kwargs):
         super(BitmaskSelectMultiple, self).__init__(*args, **kwargs)
@@ -69,16 +65,14 @@ class BitmaskSelectMultiple(forms.CheckboxSelectMultiple):
 
 # Register your models here.
 
+#if hasattr(autocomplete_light, "AutocompleteListBase"):
+#    al = autocomplete_light
+##else:
+#    import autocomplete_light.shortcuts as al
 
-if hasattr(autocomplete_light, "AutocompleteListBase"):
-    al = autocomplete_light
-else:
-    import autocomplete_light.shortcuts as al
-
-
-class NamespaceAutocomplete(al.AutocompleteListBase):
-    choices = [v for k, v in NAMESPACES]
-al.register(NamespaceAutocomplete)
+#class NamespaceAutocomplete(al.AutocompleteListBase):
+#    choices = [v for k, v in NAMESPACES]
+#al.register(NamespaceAutocomplete)
 
 
 class PermissionForm(forms.Form):
@@ -93,23 +87,23 @@ class PermissionForm(forms.Form):
         return int(perms)
 
 
-class ManualUserPermissionInline(autocomplete_light.ModelForm, PermissionForm):
+class ManualUserPermissionInline(forms.ModelForm, PermissionForm):
 
     class Meta:
         model = UserPermission
         widgets = {
-            'namespace': al.TextWidget('NamespaceAutocomplete', attrs={"style": "width:500px"}),
+            #'namespace': al.TextWidget('NamespaceAutocomplete', attrs={"style": "width:500px"}),
             'permissions': BitmaskSelectMultiple(choices=perm_choices())
         }
         fields = "__all__"
 
 
-class ManualGroupPermissionInline(autocomplete_light.ModelForm, PermissionForm):
+class ManualGroupPermissionInline(forms.ModelForm, PermissionForm):
 
     class Meta:
         model = GroupPermission
         widgets = {
-            'namespace': al.TextWidget('NamespaceAutocomplete', attrs={"style": "width:500px"}),
+            #'namespace': al.TextWidget('NamespaceAutocomplete', attrs={"style": "width:500px"}),
             'permissions': BitmaskSelectMultiple(choices=perm_choices())
         }
         fields = "__all__"
