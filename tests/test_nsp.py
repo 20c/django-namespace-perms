@@ -10,20 +10,39 @@ import inspect
 ###############################################################################
 
 class ModelTestA(models.Model):
+  class Meta:
+    managed = False
+    app_label = "tests"
+
   @property
   def nsp_namespace(self):
     return "test.django_namespace_perms.modeltesta.1"
 
 class ModelTestB(models.Model):
+  class Meta:
+    managed = False
+    app_label = "tests"
+
+
   allowedField = models.CharField(max_length=255)
   deniedField = models.CharField(max_length=255)
 
 class ModelTestC(models.Model):
+  class Meta:
+    managed = False
+    app_label = "tests"
+
+
   @classmethod
   def nsp_namespace_base(cls):
     return "test.django_namespace_perms"
 
-class ModelTestD(ModelTestC):
+class ModelTestD(models.Model):
+  class Meta:
+    managed = False
+    app_label = "tests"
+
+
   @classmethod
   def nsp_namespace_create(cls):
     return "create.test.django_namespace_perms"
