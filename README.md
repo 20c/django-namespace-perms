@@ -12,9 +12,16 @@ Provide granular permissions to django that go down to the level of individual m
 
     app_name.model_name.instance_id.field_name
 
-# Installation 
+# Installation
 
 ## Django
+
+### Versions Supported
+
+* 1.8
+* 1.9
+* 1.10
+* 1.11
 
 Edit settings.py INSTALLED_APPS
 
@@ -24,7 +31,7 @@ Edit settings.py INSTALLED_APPS
 
 Run
    
-    python manage.py syncdb
+    python manage.py migrate 
 
 ## Add Inline Permission editing to the user admin forms
 
