@@ -1,5 +1,7 @@
 # django-namespace-perms
 
+**This project has been retired and is being replaced by https://github.com/20c/django-grainy**
+
 [![PyPI](https://img.shields.io/pypi/v/django-namespace-perms.svg?maxAge=600)](https://pypi.python.org/pypi/django-namespace-perms)
 [![Travis CI](https://img.shields.io/travis/20c/django-namespace-perms.svg?maxAge=600)](https://travis-ci.org/20c/django-namespace-perms)
 [![Code Health](https://landscape.io/github/20c/django-namespace-perms/master/landscape.svg?style=flat)](https://landscape.io/github/20c/django-namespace-perms/master)
