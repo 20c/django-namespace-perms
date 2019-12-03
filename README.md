@@ -20,10 +20,21 @@ Provide granular permissions to django that go down to the level of individual m
 
 ### Versions Supported
 
+#### django-namespace-perms==0.6.0
+
+* 2.0 
+* 2.1
+* 2.2
+* 3.0
+
+#### django-namespace-perms==0.5.0
+
 * 1.8
 * 1.9
 * 1.10
 * 1.11
+
+## Config
 
 Edit settings.py INSTALLED_APPS
 
