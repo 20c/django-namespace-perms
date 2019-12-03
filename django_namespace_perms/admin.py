@@ -1,4 +1,3 @@
-
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
@@ -20,6 +19,8 @@ def assign_group_to_all_users(modeladmin, request, queryset):
         # revist when/if that get's fixed
         for user in users:
             group.user_set.add(user)
+
+
 assign_group_to_all_users.short_description = "Assign selected groups to all users"
 
 
@@ -29,12 +30,14 @@ def revoke_group_from_all_users(modeladmin, request, queryset):
     for group in queryset:
         for user in users:
             group.user_set.remove(user)
+
+
 revoke_group_from_all_users.short_description = "Revoke selected groups from all users"
 
 
 class BitmaskSelectMultiple(forms.CheckboxSelectMultiple):
     # django < 1.11
-    outer_html = '<div{id_attr}>{content}</div>'
+    outer_html = "<div{id_attr}>{content}</div>"
     inner_html = '<span style="margin-right:15px">{choice_value}{sub_widgets}</span>'
 
     def __init__(self, *args, **kwargs):
@@ -63,20 +66,20 @@ class BitmaskSelectMultiple(forms.CheckboxSelectMultiple):
             i = i | int(p)
         return i
 
+
 # Register your models here.
 
-#if hasattr(autocomplete_light, "AutocompleteListBase"):
+# if hasattr(autocomplete_light, "AutocompleteListBase"):
 #    al = autocomplete_light
 ##else:
 #    import autocomplete_light.shortcuts as al
 
-#class NamespaceAutocomplete(al.AutocompleteListBase):
+# class NamespaceAutocomplete(al.AutocompleteListBase):
 #    choices = [v for k, v in NAMESPACES]
-#al.register(NamespaceAutocomplete)
+# al.register(NamespaceAutocomplete)
 
 
 class PermissionForm(forms.Form):
-
     def clean_permissions(self):
         perms = self.cleaned_data["permissions"]
         if type(perms) == list:
@@ -88,29 +91,27 @@ class PermissionForm(forms.Form):
 
 
 class ManualUserPermissionInline(forms.ModelForm, PermissionForm):
-
     class Meta:
         model = UserPermission
         widgets = {
             #'namespace': al.TextWidget('NamespaceAutocomplete', attrs={"style": "width:500px"}),
-            'permissions': BitmaskSelectMultiple(choices=perm_choices())
+            "permissions": BitmaskSelectMultiple(choices=perm_choices())
         }
         fields = "__all__"
 
 
 class ManualGroupPermissionInline(forms.ModelForm, PermissionForm):
-
     class Meta:
         model = GroupPermission
         widgets = {
             #'namespace': al.TextWidget('NamespaceAutocomplete', attrs={"style": "width:500px"}),
-            'permissions': BitmaskSelectMultiple(choices=perm_choices())
+            "permissions": BitmaskSelectMultiple(choices=perm_choices())
         }
         fields = "__all__"
 
 
 class GroupPermissionAdmin(admin.ModelAdmin):
-    list_display = ('group', 'namespace', 'permissions')
+    list_display = ("group", "namespace", "permissions")
 
 
 class GroupPermissionInline(admin.TabularInline):
@@ -152,33 +153,32 @@ class UserPermissionInlineAdd(admin.TabularInline):
 
 
 class GroupAdmin(admin.ModelAdmin):
-    list_display = ('name',)
-    search_fields = ('name',)
+    list_display = ("name",)
+    search_fields = ("name",)
     # remove default permissions form
-    exclude = ('permissions',)
+    exclude = ("permissions",)
     inlines = (GroupPermissionInline, GroupPermissionInlineAdd)
-    actions = [
-        assign_group_to_all_users,
-        revoke_group_from_all_users
-    ]
+    actions = [assign_group_to_all_users, revoke_group_from_all_users]
 
 
 class UserAdmin(DjangoUserAdmin):
     inlines = (UserPermissionInline, UserPermissionInlineAdd)
     add_fieldsets = (
-        (None, {
-            'classes': ('wide',),
-            'fields': ('username', 'password1', 'password2', 'email')
-        })
+        None,
+        {
+            "classes": ("wide",),
+            "fields": ("username", "password1", "password2", "email"),
+        },
     )
 
     def __init__(self, *args, **kwargs):
         DjangoUserAdmin.__init__(self, *args, **kwargs)
         # remove default permissions forms
         for label, fieldset in self.fieldsets:
-            fieldset["fields"] = [x for x in fieldset["fields"] if x not in [
-                'user_permissions'
-            ]]
+            fieldset["fields"] = [
+                x for x in fieldset["fields"] if x not in ["user_permissions"]
+            ]
+
 
 try:
     admin.site.unregister(Group)

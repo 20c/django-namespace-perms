@@ -4,12 +4,12 @@ from django_namespace_perms.util import (
     has_perms,
     get_permission_flag,
     obj_to_namespace,
-    permissions_apply_to_serialized_model
+    permissions_apply_to_serialized_model,
 )
 
 from django_namespace_perms.constants import PERM_READ, PERM_WRITE
 import logging
-from exceptions import PermissionDenied
+from .exceptions import PermissionDenied
 
 
 log = logging.getLogger(__name__)
@@ -35,9 +35,8 @@ def method_to_permcode(method):
 
 
 class BasePermission(permissions.BasePermission):
-
     def debug(self, msg):
-        print msg
+        print(msg)
         log.debug(msg)
 
     def has_permission(self, request, view):
@@ -47,11 +46,10 @@ class BasePermission(permissions.BasePermission):
         return True
 
     def has_object_permission(self, request, view, obj):
-        self.debug("Check Object permissions %s, %s, %s" % (
-            request.method,
-            request.user,
-            obj_to_namespace(obj)
-        ))
+        self.debug(
+            "Check Object permissions %s, %s, %s"
+            % (request.method, request.user, obj_to_namespace(obj))
+        )
 
         if request.method in permissions.SAFE_METHODS:
             return has_perms(request.user, obj, PERM_READ)
@@ -64,14 +62,17 @@ class BasePermission(permissions.BasePermission):
                 return has_perms(
                     request.user,
                     obj,
-                    get_permission_flag(method_to_permcode(request.method))
+                    get_permission_flag(method_to_permcode(request.method)),
                 )
 
 
 class PermissionedModelSerializer(serializers.ModelSerializer):
-
     def has_create_perms(self, user, validated_data):
-        return has_perms(user, self.nsp_namespace_create(validated_data), get_permission_flag("create"))
+        return has_perms(
+            user,
+            self.nsp_namespace_create(validated_data),
+            get_permission_flag("create"),
+        )
 
     def create(self, validated_data):
         if hasattr(self, "nsp_namespace_create"):
@@ -82,18 +83,21 @@ class PermissionedModelSerializer(serializers.ModelSerializer):
                 return serializers.ModelSerializer.create(self, validated_data)
             else:
                 raise PermissionDenied(
-                    "User does not have write permissions to '%s'" % self.nsp_namespace_create(validated_data))
+                    "User does not have write permissions to '%s'"
+                    % self.nsp_namespace_create(validated_data)
+                )
         else:
             raise PermissionDenied(
-                "Serializer missing classmethod '%s' - so we have no way to determine permissioning namespace for instance creation" % "nsp_namespace_create")
+                "Serializer missing classmethod '%s' - so we have no way to determine permissioning namespace for instance creation"
+                % "nsp_namespace_create"
+            )
 
     def to_representation(self, instance):
         """
         Apply permissions to serialized data before sending it out for
         good
         """
-        r = super(serializers.ModelSerializer,
-                  self).to_representation(instance)
+        r = super(serializers.ModelSerializer, self).to_representation(instance)
 
         req = self.context.get("request", None)
         user = self.context.get("user")
@@ -111,9 +115,5 @@ class PermissionedModelSerializer(serializers.ModelSerializer):
                 if not has_perms(user, instance, 0x01):
                     return None
 
-            r = permissions_apply_to_serialized_model(
-                instance,
-                user,
-                data=r
-            )
+            r = permissions_apply_to_serialized_model(instance, user, data=r)
         return r
