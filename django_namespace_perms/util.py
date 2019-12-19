@@ -310,7 +310,7 @@ def check_perms(perms, prefix, ambiguous=False):
         perms_wc = {}
         for ns, p in list(perms.items()):
             if ns.find("*") > -1:
-                perms_wc[re.escape(ns).replace("\*", "[^\.]+")] = p
+                perms_wc[re.escape(ns).replace(r"\*", r"[^\.]+")] = p
 
         while i <= l:
             k = ".".join(token[:i])
