@@ -139,7 +139,7 @@ def load_perms(user):
     from django.core.exceptions import ObjectDoesNotExist
     from django.contrib.auth.models import Group
 
-    if user.is_authenticated():
+    if user.is_authenticated:
         perms = UserPermission.objects.filter(user=user)
         group_perms = GroupPermission.objects.filter(group__in=user.groups.all())
     else:
@@ -323,8 +323,8 @@ def check_perms(perms, prefix, ambiguous=False):
             # check for wildcard matches (if any wildcard rules exist)
             elif perms_wc:
                 for ns, p in list(perms_wc.items()):
-                    a = "^%s$" % ns
-                    b = "^%s\." % ns
+                    a = r"^%s$" % ns
+                    b = r"^%s\." % ns
                     j = len(a)
                     u = len(b)
                     if j > matched and re.match(a, k):
@@ -337,7 +337,7 @@ def check_perms(perms, prefix, ambiguous=False):
             # if not matched at all and ambiguous flag is true, do ambiguous
             # matching
             if not matched and ambiguous:
-                m = "^%s" % re.escape(k).replace("\*", "[^\.]+")
+                m = "^%s" % re.escape(k).replace(r"\*", r"[^\.]+")
                 for ns, p in list(perms.items()):
                     if re.match(m, ns) and p > r:
                         r = p
