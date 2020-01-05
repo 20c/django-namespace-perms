@@ -47,7 +47,7 @@ class BitmaskSelectMultiple(forms.CheckboxSelectMultiple):
             self.renderer.outer_html = self.outer_html
             self.renderer.inner_html = self.inner_html
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         values = []
         if type(value) == list:
             i = 0
