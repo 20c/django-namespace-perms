@@ -4,7 +4,6 @@
 
 [![PyPI](https://img.shields.io/pypi/v/django-namespace-perms.svg?maxAge=600)](https://pypi.python.org/pypi/django-namespace-perms)
 [![Travis CI](https://img.shields.io/travis/20c/django-namespace-perms.svg?maxAge=600)](https://travis-ci.org/20c/django-namespace-perms)
-[![Code Health](https://landscape.io/github/20c/django-namespace-perms/master/landscape.svg?style=flat)](https://landscape.io/github/20c/django-namespace-perms/master)
 [![Codecov](https://img.shields.io/codecov/c/github/20c/django-namespace-perms/master.svg?maxAge=600)](https://codecov.io/github/20c/django-namespace-perms)
 [![Requires.io](https://img.shields.io/requires/github/20c/django-namespace-perms.svg?maxAge=600)](https://requires.io/github/20c/django-namespace-perms/requirements)
 
@@ -20,10 +19,21 @@ Provide granular permissions to django that go down to the level of individual m
 
 ### Versions Supported
 
+#### django-namespace-perms==0.6.0
+
+* 2.0 
+* 2.1
+* 2.2
+* 3.0
+
+#### django-namespace-perms==0.5.0
+
 * 1.8
 * 1.9
 * 1.10
 * 1.11
+
+## Config
 
 Edit settings.py INSTALLED_APPS
 

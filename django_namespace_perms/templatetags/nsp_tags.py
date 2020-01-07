@@ -5,10 +5,12 @@ from django import template
 
 register = template.Library()
 
+
 @register.filter
 def nsp_check_write(user, obj):
-  return nsp.has_perms(user, obj, PERM_WRITE)
+    return nsp.has_perms(user, obj, PERM_WRITE)
+
 
 @register.filter
 def nsp_check_read(user, obj):
-  return nsp.has_perms(user, obj, PERM_READ)
+    return nsp.has_perms(user, obj, PERM_READ)

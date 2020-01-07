@@ -1,33 +1,27 @@
 import re
-import constants
+from . import constants
 import json
 import inspect
 
 from django.db.models.query import QuerySet
 from django.conf import settings
+import collections
 
 
-APP_NAMESPACES = [
-]
+APP_NAMESPACES = []
 
-NAMESPACES = [
-]
+NAMESPACES = []
 
-WRITE_OPS = [
-    "update",
-    "change",
-    "delete",
-    "create",
-    "add"
-]
+WRITE_OPS = ["update", "change", "delete", "create", "add"]
 
-STR_TYPES = [str, unicode]
+STR_TYPES = [str, str]
 
 #############################################################################
 
 
 def nsp_mode():
     return getattr(settings, "NSP_MODE", "rw")
+
 
 #############################################################################
 
@@ -62,25 +56,26 @@ def get_permission_flag(op):
 
 #############################################################################
 
-class PermissionFrame(object):
 
+class PermissionFrame(object):
     def __init__(self, p):
         #    print "PermissionFrame", p
         self.value = p
 
     def has_value(self):
-        return (self.value is not None)
+        return self.value is not None
 
     def check(self, level):
         if self.value is None:
             return False
         return (self.value & level) == level
 
+
 #############################################################################
 
 
 def dict_valid(v):
-    return hasattr(v, "items") and callable(v.items)
+    return hasattr(v, "items") and isinstance(v.items, collections.Callable)
 
 
 def dict_from_namespace(keys, data):
@@ -99,14 +94,14 @@ def dict_from_namespace(keys, data):
 def dict_has_value(data, value):
     if data == value:
         return True
-    for k, item in data.items():
+    for k, item in list(data.items()):
         return dict_has_value(item, value)
     return False
 
 
 def dict_get_path(data, keys):
     for k in keys:
-        if data.has_key(k):
+        if k in data:
             data = data[k]
         else:
             return None
@@ -114,6 +109,7 @@ def dict_get_path(data, keys):
 
 
 #############################################################################
+
 
 def autodiscover_namespaces(*models):
     for model in models:
@@ -129,6 +125,7 @@ def autodiscover_namespaces(*models):
         NAMESPACES.append((app_ns, app_ns))
     NAMESPACES.sort()
 
+
 #############################################################################
 
 
@@ -142,10 +139,9 @@ def load_perms(user):
     from django.core.exceptions import ObjectDoesNotExist
     from django.contrib.auth.models import Group
 
-    if user.is_authenticated():
+    if user.is_authenticated:
         perms = UserPermission.objects.filter(user=user)
-        group_perms = GroupPermission.objects.filter(
-            group__in=user.groups.all())
+        group_perms = GroupPermission.objects.filter(group__in=user.groups.all())
     else:
         # guest user
         if hasattr(settings, "NSP_GUEST_GROUP"):
@@ -161,7 +157,7 @@ def load_perms(user):
 
     permdict = {}
     if hasattr(user, "nsp_manual"):
-        for ns, p in user.nsp_manual.items():
+        for ns, p in list(user.nsp_manual.items()):
             permdict[ns] = p
     for perm in group_perms:
         permdict[perm.namespace] = perm.permissions
@@ -173,6 +169,7 @@ def load_perms(user):
 
     return permdict
 
+
 #############################################################################
 
 
@@ -181,12 +178,16 @@ def permcode_to_namespace(perm):
     a = re.match("(add|delete|change|view)_(.+)", perm_code)
 
     if a:
-        return ("%s.%s.%s" % (label, a.group(2), a.group(1)), get_permission_flag(a.group(1)))
+        return (
+            "%s.%s.%s" % (label, a.group(2), a.group(1)),
+            get_permission_flag(a.group(1)),
+        )
 
     return (label, get_permission_flag("read"))
 
 
 #############################################################################
+
 
 def obj_to_namespace(obj):
     if inspect.isclass(obj):
@@ -202,7 +203,8 @@ def obj_to_namespace(obj):
     if type(obj) == list:
         if len(obj) != 2:
             raise Exception(
-                "When passing a list to obj_to_namespace it is expected to have two items: The model instance and the field name")
+                "When passing a list to obj_to_namespace it is expected to have two items: The model instance and the field name"
+            )
         ns = "%s.%s" % (obj_to_namespace(obj[0]), obj[1].lower())
         return ns
 
@@ -210,13 +212,10 @@ def obj_to_namespace(obj):
         namespace = "%s.%s.%s" % (
             obj.model._meta.app_label,
             obj.model._meta.model_name,
-            obj.name
+            obj.name,
         )
     elif hasattr(obj, "_meta"):
-        namespace = "%s.%s" % (
-            obj._meta.app_label,
-            obj._meta.model_name
-        )
+        namespace = "%s.%s" % (obj._meta.app_label, obj._meta.model_name)
     else:
         namespace = str(obj)
     if hasattr(obj, "id"):
@@ -226,6 +225,7 @@ def obj_to_namespace(obj):
 
 
 #############################################################################
+
 
 def has_perms(user, namespace, level, ambiguous=False, explicit=False):
     """
@@ -254,9 +254,13 @@ def has_perms(user, namespace, level, ambiguous=False, explicit=False):
 
     if type(namespace) not in STR_TYPES:
 
-        if level == constants.PERM_READ and hasattr(namespace, "nsp_require_explicit_read"):
+        if level == constants.PERM_READ and hasattr(
+            namespace, "nsp_require_explicit_read"
+        ):
             explicit = namespace.nsp_require_explicit_read
-        elif level == constants.PERM_WRITE and hasattr(namespace, "nsp_required_explicit_write"):
+        elif level == constants.PERM_WRITE and hasattr(
+            namespace, "nsp_required_explicit_write"
+        ):
             explicit = namespace.nsp_require_explicit_write
 
         namespace = obj_to_namespace(namespace)
@@ -268,7 +272,7 @@ def has_perms(user, namespace, level, ambiguous=False, explicit=False):
         permstruct = user._nsp_perms_struct
     else:
         perms = user
-        if not perms.has_key("__ps"):
+        if "__ps" not in perms:
             permstruct = perms_structure(perms)
         else:
             permstruct = perms
@@ -277,6 +281,7 @@ def has_perms(user, namespace, level, ambiguous=False, explicit=False):
 
 
 #############################################################################
+
 
 def check_perms(perms, prefix, ambiguous=False):
     """
@@ -303,23 +308,23 @@ def check_perms(perms, prefix, ambiguous=False):
         # collect permission rules with a wildcard in them, so we dont do unecessary
         # regex searches later on
         perms_wc = {}
-        for ns, p in perms.items():
+        for ns, p in list(perms.items()):
             if ns.find("*") > -1:
-                perms_wc[re.escape(ns).replace("\*", "[^\.]+")] = p
+                perms_wc[re.escape(ns).replace(r"\*", r"[^\.]+")] = p
 
         while i <= l:
             k = ".".join(token[:i])
             matched = False
 
             # check for exact match
-            if perms.has_key(k):
+            if k in perms:
                 r = perms.get(k)
 
             # check for wildcard matches (if any wildcard rules exist)
             elif perms_wc:
-                for ns, p in perms_wc.items():
-                    a = "^%s$" % ns
-                    b = "^%s\." % ns
+                for ns, p in list(perms_wc.items()):
+                    a = r"^%s$" % ns
+                    b = r"^%s\." % ns
                     j = len(a)
                     u = len(b)
                     if j > matched and re.match(a, k):
@@ -332,8 +337,8 @@ def check_perms(perms, prefix, ambiguous=False):
             # if not matched at all and ambiguous flag is true, do ambiguous
             # matching
             if not matched and ambiguous:
-                m = "^%s" % re.escape(k).replace("\*", "[^\.]+")
-                for ns, p in perms.items():
+                m = "^%s" % re.escape(k).replace(r"\*", r"[^\.]+")
+                for ns, p in list(perms.items()):
                     if re.match(m, ns) and p > r:
                         r = p
                         break
@@ -343,6 +348,7 @@ def check_perms(perms, prefix, ambiguous=False):
         return r
     except:
         raise
+
 
 ###############################################################################
 
@@ -355,31 +361,22 @@ def permissions_apply_additive(data, perms_struct):
         return data
 
     rv = {}
-    for k, v in data.items():
+    for k, v in list(data.items()):
         direct_match = False
         if perms_struct.get(k):
             pv = perms_struct.get(k)
-            rv[k] = permissions_apply_additive(
-                v,
-                pv
-            )
-            if type(pv) in (int, long) and pv > 0:
+            rv[k] = permissions_apply_additive(v, pv)
+            if type(pv) in (int, int) and pv > 0:
                 direct_match = True
 
         if perms_struct.get("@%s" % k):
-            d = permissions_apply_additive(
-                v,
-                perms_struct.get("@%s" % k)
-            )
+            d = permissions_apply_additive(v, perms_struct.get("@%s" % k))
             if dict_valid(d) and dict_valid(rv.get(k)):
                 rv[k].update(d)
             else:
                 rv[k] = d
         if not direct_match and perms_struct.get("*"):
-            d = permissions_apply_additive(
-                v,
-                perms_struct.get("*")
-            )
+            d = permissions_apply_additive(v, perms_struct.get("*"))
             if dict_valid(d) and dict_valid(rv.get(k)):
                 rv[k].update(d)
             else:
@@ -387,39 +384,32 @@ def permissions_apply_additive(data, perms_struct):
 
     return rv
 
+
 #############################################################################
 
 
 def permissions_apply_subtractive(data, perms_struct, debug=False):
     if not dict_valid(data):
-        raise Exception(
-            "Wanted a dict or dict-like object got %s" % type(data))
+        raise Exception("Wanted a dict or dict-like object got %s" % type(data))
 
-    for k, p in perms_struct.items():
+    for k, p in list(perms_struct.items()):
         if k[0] == "@":
             k = k[1:]
 
-        if data.has_key(k):
+        if k in data:
 
             if not p or (dict_valid(data[k]) and not any(data[k])):
                 del data[k]
             elif type(data[k]) == dict and type(p) == dict:
-                permissions_apply_subtractive(
-                    data.get(k),
-                    p,
-                    debug=debug
-                )
+                permissions_apply_subtractive(data.get(k), p, debug=debug)
 
         elif k == "*":
-            for n, v in data.items():
+            for n, v in list(data.items()):
                 if not p or (dict_valid(data[n]) and not any(data[n])):
                     del data[n]
                 elif dict_valid(p) and dict_valid(v):
-                    permissions_apply_subtractive(
-                        v,
-                        p,
-                        debug=debug
-                    )
+                    permissions_apply_subtractive(v, p, debug=debug)
+
 
 #############################################################################
 
@@ -429,7 +419,7 @@ def get_perms(d, keys, explicit=False):
 
     # print "checking for",keys,"in",d,explicit
 
-    if t == int or t == long:
+    if t == int or t == int:
         if explicit and keys:
             return PermissionFrame(None)
         return PermissionFrame(d)
@@ -439,17 +429,17 @@ def get_perms(d, keys, explicit=False):
     r_a = 0
     r_b = 0
     k = keys[0]
-    if d.has_key(k):
+    if k in d:
         r_a = get_perms(d[k], keys[1:], explicit=explicit)
         if r_a.has_value():
             return r_a
 
-    if d.has_key("@%s" % k):
+    if "@%s" % k in d:
         r_c = get_perms(d["@%s" % k], keys[1:], explicit=explicit)
         if r_c.has_value():
             return r_c
 
-    if d.has_key("*"):
+    if "*" in d:
         r_b = get_perms(d["*"], keys[1:], explicit=explicit)
         if r_b.has_value():
             return r_b
@@ -460,10 +450,13 @@ def get_perms(d, keys, explicit=False):
 def perms_struct_has_explicit_rule(d, keys, level):
     return get_perms(d, keys, explicit=True).check(level)
 
+
 #############################################################################
 
 
-def permissions_apply_ruleset_require_explicit(data, path, perm, perms_struct, full_path=None):
+def permissions_apply_ruleset_require_explicit(
+    data, path, perm, perms_struct, full_path=None
+):
     d = data
     j = p = None
     a = 0
@@ -477,13 +470,13 @@ def permissions_apply_ruleset_require_explicit(data, path, perm, perms_struct, f
         if k == "*":
             if not dict_valid(d):
                 return
-            for i, j in d.items():
+            for i, j in list(d.items()):
                 permissions_apply_ruleset_require_explicit(
-                    j, keys[a + 1:], perm, perms_struct, full_path=keys[:a] + [i]
+                    j, keys[a + 1 :], perm, perms_struct, full_path=keys[:a] + [i]
                 )
             return
         else:
-            if dict_valid(d) and d.has_key(k):
+            if dict_valid(d) and k in d:
                 p = (d, k)
                 d = d[k]
             else:
@@ -493,15 +486,17 @@ def permissions_apply_ruleset_require_explicit(data, path, perm, perms_struct, f
     if full_path is None:
         r = perms_struct_has_explicit_rule(perms_struct, keys, perm)
     else:
-        r = perms_struct_has_explicit_rule(
-            perms_struct, full_path + keys, perm)
+        r = perms_struct_has_explicit_rule(perms_struct, full_path + keys, perm)
     if not r and p:
         del p[0][p[1]]
 
 
 #############################################################################
 
-def permissions_apply_list_handler(data, path, handler, perms_struct, ruleset=None, full_path=None, container=None):
+
+def permissions_apply_list_handler(
+    data, path, handler, perms_struct, ruleset=None, full_path=None, container=None
+):
 
     d = data
     a = 0
@@ -519,20 +514,26 @@ def permissions_apply_list_handler(data, path, handler, perms_struct, ruleset=No
     for k in keys:
         if k == "*":
             if dict_valid(d):
-                for i, j in d.items():
+                for i, j in list(d.items()):
 
                     if a < l - 1:
-                        _keys = keys[a + 1:]
+                        _keys = keys[a + 1 :]
                     else:
                         _keys = []
                     permissions_apply_list_handler(
-                        j, _keys, handler, perms_struct, full_path=keys[:a] + [i], container=(d, i), ruleset=ruleset
+                        j,
+                        _keys,
+                        handler,
+                        perms_struct,
+                        full_path=keys[:a] + [i],
+                        container=(d, i),
+                        ruleset=ruleset,
                     )
                 return
             elif type(d) is not list:
                 return
         else:
-            if dict_valid(d) and d.has_key(k):
+            if dict_valid(d) and k in d:
                 container = (d, k)
                 d = d[k]
             else:
@@ -543,7 +544,7 @@ def permissions_apply_list_handler(data, path, handler, perms_struct, ruleset=No
     if d:
         n = []
         rs = {}
-        if ruleset.has_key("require"):
+        if "require" in ruleset:
             rs.update(require=ruleset.get("require"))
         rs.update(handler.get("ruleset", {}))
         if full_path:
@@ -554,11 +555,9 @@ def permissions_apply_list_handler(data, path, handler, perms_struct, ruleset=No
         for item in d:
 
             if dict_valid(item):
-                final_path = handler.get("namespace")(
-                    **item).lower().split(".")
+                final_path = handler.get("namespace")(**item).lower().split(".")
             else:
-                final_path = handler.get("namespace")(
-                    obj=item).lower().split(".")
+                final_path = handler.get("namespace")(obj=item).lower().split(".")
 
             if not handler.get("absolute"):
                 final_path = _path + final_path
@@ -566,9 +565,7 @@ def permissions_apply_list_handler(data, path, handler, perms_struct, ruleset=No
             # print final_path, item
 
             r = permissions_apply(
-                dict_from_namespace(final_path, item),
-                perms_struct,
-                ruleset=rs
+                dict_from_namespace(final_path, item), perms_struct, ruleset=rs
             )
             r = dict_get_path(r, final_path)
             if r:
@@ -579,38 +576,40 @@ def permissions_apply_list_handler(data, path, handler, perms_struct, ruleset=No
 
 #############################################################################
 
-def permissions_apply(data, perms_struct, path='', debug=False, ruleset=None):
+
+def permissions_apply(data, perms_struct, path="", debug=False, ruleset=None):
     if not dict_valid(perms_struct):
         load_perms(perms_struct)
         perms_struct = perms_struct._nsp_perms_struct
     rv = permissions_apply_additive(data, perms_struct)
 
     if debug:
-        print json.dumps(rv, indent=2)
+        print(json.dumps(rv, indent=2))
 
     permissions_apply_subtractive(rv, perms_struct)
 
     if debug:
-        print json.dumps(rv, indent=2)
+        print(json.dumps(rv, indent=2))
 
     # apply ruleset
     if ruleset:
-        for key, perm in ruleset.get("require", {}).items():
-            permissions_apply_ruleset_require_explicit(
-                rv, key, perm, perms_struct)
-        for key, hdl in ruleset.get("list-handlers", {}).items():
-            permissions_apply_list_handler(
-                rv, key, hdl, perms_struct, ruleset=ruleset)
+        for key, perm in list(ruleset.get("require", {}).items()):
+            permissions_apply_ruleset_require_explicit(rv, key, perm, perms_struct)
+        for key, hdl in list(ruleset.get("list-handlers", {}).items()):
+            permissions_apply_list_handler(rv, key, hdl, perms_struct, ruleset=ruleset)
 
     if debug:
-        print json.dumps(rv, indent=2)
+        print(json.dumps(rv, indent=2))
 
     return rv
+
 
 #############################################################################
 
 
-def permissions_apply_to_serialized_model(smodel, perms_struct, data=None, ruleset=None):
+def permissions_apply_to_serialized_model(
+    smodel, perms_struct, data=None, ruleset=None
+):
     if ruleset is None:
         ruleset = {}
 
@@ -642,43 +641,40 @@ def permissions_apply_to_serialized_model(smodel, perms_struct, data=None, rules
     # prepare ruleset
     if ruleset:
         _ruleset = {}
-        for section, rules in ruleset.items():
+        for section, rules in list(ruleset.items()):
             _ruleset[section] = {}
-            for rule, perms in rules.items():
+            for rule, perms in list(rules.items()):
                 _ruleset[section]["%s.%s" % (namespace_str, rule)] = perms
         ruleset = _ruleset
 
-    r = permissions_apply(
-        structure,
-        perms_struct,
-        ruleset=ruleset
-    )
+    r = permissions_apply(structure, perms_struct, ruleset=ruleset)
 
     for k in namespace:
         r = r.get(k, {})
 
     return r
 
+
 #############################################################################
 
 
 def perms_structure(perms):
     perms_wc = {"__ps": True}
-    for ns, p in perms.items():
+    for ns, p in list(perms.items()):
         pieces = ns.split(".")
         a = prev = perms_wc
         n = 0
         l = len(pieces)
         for k in pieces:
             if n < l - 1:
-                if not a.has_key(k):
+                if k not in a:
                     a[k] = {}
                 elif type(a[k]) != dict:
                     a["@%s" % k] = a[k]
                     a[k] = {}
                 a = a[k]
             else:
-                if not a.has_key(k):
+                if k not in a:
                     a[k] = p
                 else:
                     a["@%s" % k] = p
